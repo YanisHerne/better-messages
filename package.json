@@ -1,0 +1,21 @@
+{
+    "name": "better-messaging",
+    "version": "0.1.0",
+    "description": "Better typescript ergonomics and organization for browser extension messaging apis.",
+    "main": "index.js",
+    "scripts": {
+        "build": "tsdown"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "packageManager": "pnpm@10.8.0",
+    "devDependencies": {
+        "@types/chrome": "^0.1.24",
+        "eslint": "^9.38.0",
+        "eslint-config-prettier": "^10.1.8",
+        "prettier": "^3.6.2",
+        "tsdown": "^0.15.9",
+        "vite": "^7.1.12"
+    }
+}
