@@ -1,0 +1,14 @@
+{
+    "name": "better-messages-example",
+    "description": "An example browser extension showing the utility of better-messages",
+    "manifest_version": 3,
+    "version": "1.0.0",
+    "permissions": ["scripting"],
+    "host_permissions": ["<all_urls>"],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    }
+}

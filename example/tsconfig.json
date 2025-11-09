@@ -4,11 +4,13 @@
         "target": "es2022",
         "module": "es2022",
         "moduleResolution": "node",
+        "sourceMap": true,
         "inlineSourceMap": true,
         "inlineSources" : true,
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
         "esModuleInterop": true,
+        "noEmit": true,
         "isolatedModules": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
@@ -17,12 +19,6 @@
         "types": ["chrome"],
         "outDir": "./dist",
     },
-    "include": [
-        "src/**/*",
-        "example/**/*",
-    ],
-    "exclude": [
-        "node_modules",
-        "scripts/*"
-    ]
+    "include": [ "src/**/*" ],
+    "exclude": [ "node_modules" ],
 }
