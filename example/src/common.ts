@@ -1,6 +1,6 @@
 import { makeMessages } from "better-messages";
 
-export const { onMessage, sendMessage, sendMessageToTab } = makeMessages<{
+export const { onMessage, sendMessage } = makeMessages<{
     inject: () => void
     hello: (x: string) => string
     divide: (x: number, y: number) => number

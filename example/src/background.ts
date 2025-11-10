@@ -1,4 +1,4 @@
-import { onMessage, sendMessageToTab } from "./common";
+import { onMessage, sendMessage } from "./common";
 
 onMessage({
     inject: async () => {
@@ -9,14 +9,14 @@ onMessage({
             target: { tabId: tabId },
             files: ['./content.js']
         }); 
-        await sendMessageToTab(tabId, "hello", "Hello from background");
+        await sendMessage(tabId, "hello", "Hello from background");
 
         let count = 0;
         setInterval(async () => {
             count++;
             if (!tabId) return;
             try {
-                await sendMessageToTab(tabId, "hello", `Hello for ${count} times`);
+                await sendMessage(tabId, "hello", `Hello for ${count} times`);
             } catch {}
         }, 1000);
     },
