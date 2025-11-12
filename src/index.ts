@@ -231,7 +231,7 @@ type Flatten<T extends StrictContract> =
 //type Bar = Flatten<Uniqueify<RawInput>>
 
 interface StrictMessages<S extends StrictContract> {
-    onMessage<G extends keyof S, C extends S[G] extends Contract ? S[keyof S] : never = S[G] extends Contract ? S[keyof S] : never>(
+    onMessage<G extends keyof S, C extends S[G] = S[G]>(
         handlers: {
             [K in keyof C]: (
                 sender: chrome.runtime.MessageSender,
@@ -239,6 +239,12 @@ interface StrictMessages<S extends StrictContract> {
             ) => Output<C,K> | Promise<Output<C,K>>;
         },
     ): void;
+
+    createMessage<G extends keyof S, C extends S[G] extends Contract
+    ? S[G] : never = S[G] extends Contract
+    ? S[G] : never>(category: G): {
+        [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+    }
 
     sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
         tag: K,
@@ -381,8 +387,8 @@ export const makeMessages: MakeMessages = <C extends Record<any, (...args: any[]
 export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKeys<S>): StrictMessages<S> => {
     const onMessage = <
     G extends keyof S,
-    C extends S[G] extends Contract ? S[keyof S] : never,
     K extends keyof C,
+    C extends S[G] = S[G],
     >(
         ...args: [handlers: { [K in keyof C]: Handler<C, K> }]
     ): void => {
@@ -415,6 +421,26 @@ export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKey
             },
         );
     };
+
+    const createMessage = <G extends keyof S, C extends S[G] extends Contract
+    ? S[keyof S] : never = S[G] extends Contract
+    ? S[keyof S] : never>(category: G) => {
+        const proxy = new Proxy(
+            {} as C,
+            {
+                get: <K extends keyof C>(target: C, prop: K, receiver: any) => {
+                    return (...message: Input<C,K>) => {
+                        const internal: InternalInput<C, K> = {
+                            tag: prop,
+                            msg: message,
+                        }
+                        return chrome.runtime.sendMessage<InternalInput<C,K>,Output<C,K>>(internal);
+                    }
+                }
+            },
+        );
+        return proxy as { [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>> };
+    }
 
     const sendMessage = <C extends Flatten<Uniqueify<S>>, K extends keyof C>(...args:
         | [tag: K, ...message: Input<C,K>]
@@ -453,5 +479,5 @@ export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKey
         }
     };
 
-    return { onMessage, sendMessage };
+    return { onMessage, createMessage, sendMessage };
 }

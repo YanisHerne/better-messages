@@ -1,6 +1,6 @@
 import { makeStrictMessages } from "better-messages";
 
-export const { onMessage, sendMessage } = makeStrictMessages<{
+export const { onMessage, createMessage, sendMessage } = makeStrictMessages<{
     background: {
         inject: () => void
         divide: (x: number, y: number) => number
