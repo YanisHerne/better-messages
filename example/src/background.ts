@@ -22,15 +22,15 @@ onMessage({
     },
 
     // x and y inputs are automatically typed as numbers
-    divide: (_, x, y) => x / y,
+    divide: (x, y) => x / y,
 
-    add: (_, x, y) => x + y,
+    add: (x, y) => x + y,
 
     // error: Object literal may only specify known properties, and 'subtract'
     // does not exist in type ...
-    // subtract: (_, x, y) => x - y,
+    // subtract: (x, y) => x - y,
 
     // error:  Type 'string' is not assignable to type 'number | Promise<number>'.
-    // add: (_, x, y) => "This is a string",
+    // add: (x, y) => "This is a string",
 });
 

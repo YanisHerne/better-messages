@@ -22,9 +22,9 @@ onMessage<"background">({
     },
 
     // x and y inputs are automatically typed as numbers
-    divide: (_, x, y) => x / y,
+    divide: (x, y) => x / y,
 
-    add: (_, x, y) => x + y,
+    add: (x, y) => x + y,
 
     // error: Object literal may only specify known properties, and 'subtract'
     // does not exist in type ...
