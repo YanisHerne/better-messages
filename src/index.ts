@@ -117,86 +117,10 @@ export interface BetterMessages<C extends Contract> {
 }
 
 type StrictContract = {
-    [category: string]: Contract/*{
-        [subkey: string]: (...args: any[]) => any
-    }*/
-}
-
-type CollectSubKeys<S extends StrictContract> = {
-    [K in keyof S]: (keyof S[K]);
-};
-
-type Tupleify<T> = {
-    [K in keyof T]: UnionToTuple<T[K]>
+    [category: string]: Contract
 }
 
 type UnionToIntersection<U> = (U extends unknown ? (arg: U) => 0 : never) extends (arg: infer I) => 0 ? I : never;
-
-type LastInUnion<U> = UnionToIntersection<
-    U extends unknown ? (x: U) => 0 : never
-> extends (x: infer L) => 0
-    ? L
-    : never;
-
-type UnionToTuple<T, Last = LastInUnion<T>> = [T] extends [never]
-    ? []
-    : [Last, ...UnionToTuple<Exclude<T, Last>>];
-
-type HasDuplicate<T extends readonly any[], Seen = never> =
-    T extends readonly [infer Head, ...infer Tail]
-    ? Head extends Seen
-        ? true
-        : HasDuplicate<Tail, Seen | Head>
-    : false;
-
-type AreTuplesUnique<T1 extends readonly any[], T2 extends readonly any[]> =
-    HasDuplicate<T1> extends true
-    ? never
-        : HasDuplicate<T2, T1[number]> extends true
-        ? never
-    : true;
-
-type CheckAllTuples<
-    TPairs extends [string[], string[]][],
-> = {
-  [K in keyof TPairs]: TPairs[K] extends [
-    infer T extends string[],
-    infer U extends string[],
-  ]
-    ? AreTuplesUnique<T, U>
-    : never;
-};
-
-type TupleCombinations<T> = T extends [
-    infer Head extends string[],
-    ...infer Tail extends string[][],
-]
-    ? [
-        ...{
-            [K in keyof Tail]: [Head, Tail[K] extends string[] ? Tail[K] : never];
-        },
-        ...TupleCombinations<Tail>,
-            ] extends infer R
-            ? R
-            : never
-    : [];
-
-type ApplyToCombinations<InputTuples> = TupleCombinations<InputTuples> extends infer InnerTuplePairs
-    ? CheckAllTuples<
-        InnerTuplePairs extends [string[], string[]][] ? InnerTuplePairs : never
-    > extends infer Result
-        ? Result
-        : never
-    : never;
-
-type GetValues<T> = T[keyof T]
-
-type ValidateStrictContract<S extends StrictContract> =
-    ApplyToCombinations<UnionToTuple<GetValues<Tupleify<CollectSubKeys<S>>>>>[0] extends never
-    ? "Error: Sub-keys must not be duplicated"
-    : S
-
-// https://stackoverflow.com/questions/74489137/typescript-how-to-enforce-unique-keys-across-nested-objects
 
 type UniqueKeys<T extends StrictContract> = keyof T[keyof T] extends never ? [] : [never, "Error: Names of methods (sub-keys) in a StrictContract must be unique across the entire contract"]
 type Uniqueify<T extends StrictContract> = keyof T[keyof T] extends never ? T : never
@@ -216,20 +140,6 @@ type Flatten<T extends StrictContract> =
     ? FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>>
     : never
 
-//type RawInput = {
-//    background: {
-//        divide: (x: number, y: number) => number
-//    },
-//    content: {
-//        divide: (x: number, y: number) => number
-//        multiply: (x: number, y: number) => number
-//    },
-//}
-//const Foo = <T extends StrictContract>(..._args: UniqueKeys<T>) => {
-//}
-//Foo<RawInput>();
-//type Bar = Flatten<Uniqueify<RawInput>>
-
 interface StrictMessages<S extends StrictContract> {
     onMessage<G extends keyof S, C extends S[G] = S[G]>(
         handlers: {
@@ -242,9 +152,25 @@ interface StrictMessages<S extends StrictContract> {
 
     createMessage<G extends keyof S, C extends S[G] extends Contract
     ? S[G] : never = S[G] extends Contract
-    ? S[G] : never>(category: G): {
+    ? S[G] : never>( tabAndFrameId: {
+        tabId: number,
+        frameId: number,
+    }): {
         [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
     }
+    createMessage<G extends keyof S, C extends S[G] extends Contract
+    ? S[G] : never = S[G] extends Contract
+    ? S[G] : never>(
+        tabId: number
+    ): {
+        [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+    }
+    createMessage<G extends keyof S, C extends S[G] extends Contract
+    ? S[G] : never = S[G] extends Contract
+    ? S[G] : never>(
+    ): {
+         [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+     }
 
     sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
         tag: K,
@@ -265,27 +191,6 @@ interface StrictMessages<S extends StrictContract> {
     ): Promise<Output<C, K>>
 }
 
-//type Thing3 = StrictMessages<{
-//    background: {
-//        hello: (x: string) => string
-//    },
-//    thing2: {
-//        foo: (x: string) => string
-//        bar: (x: string) => string
-//    }
-//}>["createMessage"]
-//type Thing4 = BetterMessages<{
-//    hello: (x: string) => string
-//    foo: (x: string) => string
-//    bar: (x: string) => string
-//}>["sendMessage"]
-
-interface MakeMessages {
-    <C extends Contract>(): BetterMessages<C>
-    //<C extends StrictContract>(): StrictMessages<C>
-}
-
-
 /**
  * The `makeMessages` function is the entry point for `better-messages`. It takes a generic type
  * parameter to define your message **Contract**. This contract is an object type where:
@@ -301,7 +206,7 @@ interface MakeMessages {
  * `makeMessages` returns an object containing two functions: `onMessage` and `sendMessage`, both of
  * which are configured with your defined `Contract`.
  */
-export const makeMessages: MakeMessages = <C extends Record<any, (...args: any[]) => any>>(): BetterMessages<C> => {
+export const makeMessages = <C extends Record<any, (...args: any[]) => any>>(): BetterMessages<C> => {
     const onMessage = <K extends keyof C>(...args: 
         | [handlers: { [K in keyof C]?: Handler<C, K> }]
         | [tag: K, handler: Handler<C,K>]
@@ -422,26 +327,6 @@ export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKey
         );
     };
 
-    const createMessage = <G extends keyof S, C extends S[G] extends Contract
-    ? S[keyof S] : never = S[G] extends Contract
-    ? S[keyof S] : never>(category: G) => {
-        const proxy = new Proxy(
-            {} as C,
-            {
-                get: <K extends keyof C>(target: C, prop: K, receiver: any) => {
-                    return (...message: Input<C,K>) => {
-                        const internal: InternalInput<C, K> = {
-                            tag: prop,
-                            msg: message,
-                        }
-                        return chrome.runtime.sendMessage<InternalInput<C,K>,Output<C,K>>(internal);
-                    }
-                }
-            },
-        );
-        return proxy as { [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>> };
-    }
-
     const sendMessage = <C extends Flatten<Uniqueify<S>>, K extends keyof C>(...args:
         | [tag: K, ...message: Input<C,K>]
         | [tabId: number, tag: K, ...message: Input<C, K>]
@@ -478,6 +363,40 @@ export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKey
             return chrome.runtime.sendMessage<InternalInput<C,K>,Output<C,K>>(internal);
         }
     };
+
+    const createMessage = <G extends keyof S, C extends S[G] extends Contract
+    ? S[keyof S] : never = S[G] extends Contract
+    ? S[keyof S] : never>(...args:
+        | []
+        | [tabId: number]
+        | [tabAndFrameId: {
+            tabId: number,
+            frameId: number,
+        }]
+    ) => {
+        // Since the original contract is not available at runtime, a real
+        // object using its keys is impossible to construct. We simply fake the
+        // object using a proxy object and type assertions. Once a property is
+        // accessed on the object (which will be checked by typescript), all
+        // the necessary information to construct the message is available at
+        // runtime.
+        const proxy = new Proxy(
+            {} as C,
+            {
+                get: <K extends keyof C>(_target: C, tag: K, _receiver: any) => {
+                    return (...message: Input<C,K>) => {
+                        // Save space by delegating to the previous overloads. Indexing into the
+                        // strict contract vs flattening makes typescript angry, requiring the
+                        // type assertion. It is safe, however, since the type pre-assertion is
+                        // actually stricter.
+                        return sendMessage(...args, tag, ...message as Parameters<Flatten<Uniqueify<S>>[K]>);
+                    }
+                },
+            },
+        );
+        return proxy as { [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>> };
+    }
+
 
     return { onMessage, createMessage, sendMessage };
 }

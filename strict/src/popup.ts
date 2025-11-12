@@ -1,6 +1,6 @@
 import { createMessage } from "./common";
 
-const background = createMessage("background");
+const background = createMessage<"background">();
 
 // Autocomplete works:
 // background.|
@@ -26,7 +26,7 @@ const background = createMessage("background");
 //
 // background.inject(true);
 //                   ^^^^
-// error: Argument of type 'string' is not assignable to parameter of type 'number'.
+// error: Expected 0 arguments, but got 1. 
 
 const injectButton = document.getElementById("inject");
 if (!injectButton) throw new Error();
