@@ -6,15 +6,11 @@ popup, content script).
 
 ## Why `better-messages`?
 
-Traditional browser extension messaging with the raw APIs is boilerplate-heavy and prone to runtime
-errors. `better-messages` solves this by:
+Traditional browser extension messaging with the raw APIs is boilerplate-heavy and prone to runtime errors. `better-messages` solves this by:
 
-*   **Type Safety:** Define your message contract once, and `better-messages` ensures all your
- message senders and listeners adhere to it, catching errors at compile time.
-*   **Ergonomics:** No more manual type checking, type assertions or promise management. Write clean,
- readable code.
-*   **Organization:** Ensure that each part of your extension has a clearly defined set of
- listeners, instead of wrangling a bunch of randomly placed functions.
+*   **Type Safety:** Define your message contract once, and `better-messages` ensures all your message senders and listeners adhere to it, catching errors at compile time.
+*   **Ergonomics:** No more manual type checking, validating, or type assertions. Write clean, readable code.
+*   **Organization:** Ensure that each part of your extension has a clearly defined set of listeners, instead of wrangling a bunch of randomly placed functions.
 
 ## Installation
 ```bash
@@ -40,20 +36,42 @@ export const { onMessage, sendMessage } = makeMessages<{
 
 ### Listening for Messages (`onMessage`)
 
-Use `onMessage` to register handlers for your defined messages. TypeScript automatically provides
-correct argument types and enforces return types.
+Use `onMessage` to register handlers for your defined messages by passing an object that has is any partial subset of your Contract. TypeScript automatically provides
+correct argument types and enforces return types, and your IDE will give you autocomplete and hover information. You can also use an alternate syntax wherein only a single listener is instantiated, by passing two parameters, where the first parameter is the name of the message, and the second parameter is the listener callback.
 
 ```typescript
 // ./background.ts
 import { onMessage } from "./common";
 
 onMessage({
-    hello: (_, name) => `Hello, ${name}!`, // `name` is typed as string
-    add: (_, x, y) => x + y, // Return type enforced as "number"
+    hello: (name) => `Hello, ${name}!`, // `name` is typed as string
+    add: (x, y) => x + y, // Return type enforced as "number"
     getTheme: async () => {
         // Asynchronous handlers work out of the box
         return await someStorageApi();
     },
+});
+
+// This is also valid if you only want to implement this message here
+onMessage({
+    hello: (name) => `Hello, ${name}!`,
+});
+
+// This syntax is also valid
+onMessage("hello", (name) => `Hello, ${name}!`);
+
+// Examples of typescript type enforcement:
+
+onMessage({
+    randomKey: () => true,
+//  ^^^^^^^^^
+// error: Object literal may only specify known properties, and 'randomKey' does not exist in type 
+});
+
+onMessage({
+    getTheme: () => "day",
+//  ^^^^^^^^
+// error: Type '() => "day"' is not assignable to type '(args_0: MessageSender) => "auto" | "light" | "dark" | Promise<"auto" | "light" | "dark">'. Type '"day"' is not assignable to type '"auto" | "light" | "dark" | Promise<"auto" | "light" | "dark">'.});
 });
 ```
 
@@ -79,7 +97,7 @@ const theme = await sendMessage("getTheme");
 console.log(theme); // "auto" | "light" | "dark"
 
 // Autocomplete for available messages:
-const foo = await sendMessage(|
+const foo = await sendMessage(█
                               ╭────────────╮
                               │ "hello"    │
                               │ "add"      │
@@ -87,164 +105,94 @@ const foo = await sendMessage(|
                               ╰────────────╯
 ```
 
-## API Reference
+## Usage (Strict Mode)
 
-### `makeMessages`
-
-The `makeMessages` function is the entry point for `better-messages`. It takes a generic type
-parameter, `C`, which defines your message **Contract**. This contract is an object type where:
-
-*   Keys are the names of your messages.
-*   Values are functions, where:
-    *   The **parameter types** define the data sent with the message (`Input<C, K>`).
-    *   The **return types** define the data received as a response (`Output<C, K>`).
-    *   You do **not** need to explicitly wrap return types in `Promise<T>`. Both synchronous and
-        asynchronous handlers (returning plain values or Promises) are handled automatically. If no
-        response is expected, the return type can be `void`.
-
-`makeMessages` returns an object containing two functions: `onMessage` and `sendMessage`, both of
-which are configured with your defined `Contract`.
+`better-messages` also incorporates a strict mode that slightly reduces flexibility in return for a more organized structure. Again, defining your contract in a shared file. This time, the contract is a "Strict Contract", an object in which the keys are "categories", and the values are subobjects that are normal Contracts, where the keys are the names, and values are functions. The function arguments define the sent data, and the return type defines the response data.
 
 ```typescript
-// Example Contract definition
-export const { onMessage, sendMessage } = makeMessages<{
-    // Message 'hello' takes a string and returns a string
-    hello: (name: string) => string;
-    // Message 'add' takes two numbers and returns a number
-    add: (x: number, y: number) => number;
-    // Message 'getTheme' takes no arguments and returns a union type
-    getTheme: () => "auto" | "light" | "dark";
+// ./common.ts
+import { makeStrictMessages } from "better-messages";
+
+export const { onMessage, createMessage, sendMessage } = makeStrictMessages<{
+    background: {
+        // Message from popup to background to inject content script, with no response.
+        inject: () => void
+        // Divide x by y
+        divide: (x: number, y: number) => number
+        // Add x and y
+        add: (x: number, y: number) => number
+    }
+    content: {
+        // Respond to a hello
+        hello: (name: string) => string
+        // Concatenate two strings
+        concat: (x: string, y: string) => string
+        // Get the length of a string
+        length: (x: string) => number
+    }
 }>();
 ```
 
----
+### Listening for Messages (`onMessage`)
 
-### `onMessage`
-
-`onMessage` allows you to register handlers that respond to incoming messages defined in your
-`Contract`.
-
-**Signatures:**
+Use `onMessage` to register handlers for your defined messages. However, when using Strict Messages, you must provide a type argument that is a top-level key from your Strict Contract. Adding an erroneous listener when the contract doesn't call for one under the chosen category in the Strict Contract, or neglecting to add a listener that was specified in the Strict Contract, will create a typescript error.
 
 ```typescript
-// ... C extends Contract ...
+// ./background.ts
+import { onMessage } from "./common";
 
-// Register a single handler for a specific message tag
-onMessage<K extends keyof C>(
-    tag: K,
-    handler: (
-        sender: chrome.runtime.MessageSender,
-        ...message: Input<C, K>
-    ) => Output<C, K> | Promise<Output<C, K>>,
-): void;
-
-// Register multiple handlers at once using an object map
-onMessage(
-    handlers: {
-        [K in keyof C]?: (
-            sender: chrome.runtime.MessageSender,
-            ...message: Input<C, K>
-        ) => Output<C, K> | Promise<Output<C, K>>;
+onMessage<"background">({ // Note the type parameter
+    // Everything else works the same way
+    inject: async () => { // chrome apis will probably need async
+        console.log("Injecting content script!");
+        // Code for chrome.executeScript and stuff here
     },
-): void;
-```
-
-*   **`tag`**: The name of the message (a key from your `Contract`).
-*   **`handler`**: A function that will be executed when the specified message is received.
-    *   The first argument to the handler is the `chrome.runtime.MessageSender` object, providing
-        information about the sender of the message (e.g., `tab` details).
-    *   Subsequent arguments (`...message`) are automatically typed according to the `Input` type
-        defined in your `Contract` for that message.
-    *   The return value must match the `Output` type for that message in your `Contract`. You can
-        return a direct value or a `Promise` resolving to the value; `better-messages` handles
-        asynchronous responses automatically.
-*   **`handlers`**: An object where keys are message names and values are the corresponding
-    handler functions. This is the more common and ergonomic way to register multiple handlers.
-
-**Example (single handler):**
-
-```typescript
-onMessage("hello", (sender, name) => {
-    console.log(`Message from ${sender.tab?.id}`, name);
-    return `Hello there, ${name}!`;
-});
-```
-
-**Example (multiple handlers - as shown in Usage section):**
-
-```typescript
-onMessage({
-    hello: (_, name) => `Hello, ${name}!`,
-    getTheme: async () => {
-        return await someStorageApi();
+    divide: (x, y) => x / y,
+    add: (x, y, sender) => {
+        console.log("[Add] message from:")
+        console.log(sender)
+        return x + y;
     },
 });
 ```
-
----
-
-### `sendMessage`
-
-`sendMessage` allows you to send messages to other parts of your extension, as defined in your
-`Contract`. It returns a `Promise` that resolves with the response from the message handler.
-
-**Signatures:**
-
 ```typescript
-// ... C extends Contract ...
+// ./content.ts
+import { onMessage } from "./common";
 
-// Send a message to the active context (e.g., background to popup, or popup to background)
-sendMessage<K extends keyof C>(
-    tag: K,
-    ...message: Input<C, K>
-): Promise<Output<C, K>>;
-
-// Send a message to a specific tab
-sendMessage<K extends keyof C>(
-    tabId: number,
-    tag: K,
-    ...message: Input<C, K>
-): Promise<Output<C, K>>;
-
-// Send a message to a specific frame within a tab
-sendMessage<K extends keyof C>(
-    tabAndFrameId: {
-        tabId: number;
-        frameId: number;
-    },
-    tag: K,
-    ...message: Input<C, K>
-): Promise<Output<C, K>>;
+onMessage<"content">({
+    hello: (name) => `Hello, ${name}!`, // `name` is typed as string
+    concat: (x, y) => x + y,
+    length: (x) => x.length,
+});
 ```
 
-*   **`tag`**: The name of the message (a key from your `Contract`). TypeScript will provide
-    autocomplete suggestions.
-*   **`...message`**: The arguments to send with the message, automatically type-checked against the
-    `Input` type for the specified message in your `Contract`.
-*   **`tabId`**: (Optional) The ID of the tab to send the message to. Omit this to send the message
-    to the "global" listener (e.g., background script if sending from a popup/content script, or vice-versa).
-*   **`tabAndFrameId`**: (Optional) An object specifying both `tabId` and `frameId` to send a
-    message to a very specific frame within a tab (e.g., a content script in an iframe).
+### Sending Messages (`sendMessage` or `createMessage`)
 
-**Example (sending to default listener):**
+Use `sendMessage` to invoke a message. You'll get autocomplete for message names and type checking
+for arguments. The return type is also automatically inferred.
 
 ```typescript
-const response = await sendMessage("hello", "Earthling");
-console.log(response); // "Hello there, Earthling!"
+// ./popup.ts
+import { sendMessage, createMessage } from "./common";
+
+const quotient = await sendMessage("divide", 66, 3);
+console.log(quotient) // 22
+
+const sum = await sendMessage("add", 5, 3);
+console.log(sum); // 8
 ```
 
-**Example (sending to a specific tab):**
+You can get an object-type syntax using `createMessage`, which you may find more ergonomic. Passing a key from your Strict Contract as the type parameter for `createMessage` will create an object with the corresponding methods for that key in the Strict Contract.
 
 ```typescript
-const tabId = 123; // Get this from chrome.tabs.query or similar
-const sum = await sendMessage(tabId, "add", 10, 20);
-console.log(`Sum in tab ${tabId}: ${sum}`); // 30
-```
+// or you can use it this way:
 
-**Example (sending to a specific frame):**
+// Note the type parameter, to message to the background script from the popup script
+const background = createMessage<"background">();
 
-```typescript
-const frameLocation = { tabId: 456, frameId: 1 }; // From chrome.tabs.query, chrome.scripting, etc.
-const theme = await sendMessage(frameLocation, "getTheme");
-console.log(`Theme in frame: ${theme}`); // "light"
+const quotient = await background.divide(66, 3);
+console.log(quotient) // 22
+
+const sum = await background.add(5, 3);
+console.log(sum); // 8
 ```

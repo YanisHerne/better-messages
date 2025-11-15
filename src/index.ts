@@ -79,7 +79,48 @@ type Handler<
     ...args: [...Input<C,K>, chrome.runtime.MessageSender]
 ) => Output<C,K> | Promise<Output<C,K>>
 
-export interface BetterMessages<C extends Contract> {
+
+type StrictContract = {
+    [category: string]: Contract
+}
+
+type UnionToIntersection<U> = (U extends unknown ? (arg: U) => 0 : never) extends (arg: infer I) => 0 ? I : never;
+
+type UniqueKeys<T extends StrictContract> = keyof T[keyof T] extends never ? [] : [never, "Error: Names of methods (sub-keys) in a StrictContract must be unique across the entire contract"]
+type Uniqueify<T extends StrictContract> = keyof T[keyof T] extends never ? T : never
+
+type ExtractIndividualYProps<T extends StrictContract> = {
+    [X in keyof T]: {
+        [Y in keyof T[X]]: {
+            [K in Y]: T[X][Y]
+        }
+    }[keyof T[X]]
+}[keyof T]
+type FlattenIntersection<T> = {
+  [K in keyof T]: T[K];
+};
+type Flatten<T extends StrictContract> =
+    FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>> extends Contract
+    ? FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>>
+    : never
+
+
+/**
+ * The `makeMessages` function is the entry point for `better-messages`. It takes a generic type
+ * parameter to define your message **Contract**. This contract is an object type where:
+ * 
+ * * Keys are the names of your messages.
+ * * Values are functions, where:
+ *   * The **parameter types** define the data sent with the message (`Input<C, K>`).
+ *   * The **return types** define the data received as a response (`Output<C, K>`).
+ *   * You do **not** need to explicitly wrap return types in `Promise<T>`. Both synchronous and
+ *     asynchronous handlers (returning plain values or Promises) are handled automatically. If no
+ *     response is expected, the return type can be `void`.
+ * 
+ * `makeMessages` returns an object containing two functions: `onMessage` and `sendMessage`, both of
+ * which are configured with your defined `Contract`.
+ */
+export const makeMessages = <C extends Record<any, (...args: any[]) => any>>(): {
     onMessage<K extends keyof C>(
         this: void,
         tag: K,
@@ -116,99 +157,7 @@ export interface BetterMessages<C extends Contract> {
         tag: K,
         ...message: Input<C, K>
     ): Promise<Output<C, K>>
-}
-
-type StrictContract = {
-    [category: string]: Contract
-}
-
-type UnionToIntersection<U> = (U extends unknown ? (arg: U) => 0 : never) extends (arg: infer I) => 0 ? I : never;
-
-type UniqueKeys<T extends StrictContract> = keyof T[keyof T] extends never ? [] : [never, "Error: Names of methods (sub-keys) in a StrictContract must be unique across the entire contract"]
-type Uniqueify<T extends StrictContract> = keyof T[keyof T] extends never ? T : never
-
-type ExtractIndividualYProps<T extends StrictContract> = {
-    [X in keyof T]: {
-        [Y in keyof T[X]]: {
-            [K in Y]: T[X][Y]
-        }
-    }[keyof T[X]]
-}[keyof T]
-type FlattenIntersection<T> = {
-  [K in keyof T]: T[K];
-};
-type Flatten<T extends StrictContract> =
-    FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>> extends Contract
-    ? FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>>
-    : never
-
-interface StrictMessages<S extends StrictContract> {
-    onMessage<G extends keyof S, C extends S[G] = S[G]>(
-        this: void,
-        handlers: {
-            [K in keyof C]: (
-                ...args: [...Input<C,K>, chrome.runtime.MessageSender]
-            ) => Output<C,K> | Promise<Output<C,K>>;
-        },
-    ): void;
-
-    createMessage<G extends keyof S, C extends S[G] = S[G]>(
-        this: void,
-        tabAndFrameId: {
-            tabId: number,
-            frameId: number,
-        }
-    ): {
-        [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
-    }
-    createMessage<G extends keyof S, C extends S[G] = S[G]>(
-        this: void,
-        tabId: number,
-    ): {
-        [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
-    }
-    createMessage<G extends keyof S, C extends S[G] = S[G]>(this: void): {
-         [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
-     }
-
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        this: void,
-        tag: K,
-        ...message: Input<C, K>
-    ): Promise<Output<C, K>>;
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        this: void,
-        tabId: number,
-        tag: K,
-        ...message: Input<C, K>
-    ): Promise<Output<C, K>>
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        this: void,
-        tabAndFrameId: {
-            tabId: number,
-            frameId: number,
-        },
-        tag: K,
-        ...message: Input<C, K>
-    ): Promise<Output<C, K>>
-}
-
-/**
- * The `makeMessages` function is the entry point for `better-messages`. It takes a generic type
- * parameter to define your message **Contract**. This contract is an object type where:
- * 
- * * Keys are the names of your messages.
- * * Values are functions, where:
- *   * The **parameter types** define the data sent with the message (`Input<C, K>`).
- *   * The **return types** define the data received as a response (`Output<C, K>`).
- *   * You do **not** need to explicitly wrap return types in `Promise<T>`. Both synchronous and
- *     asynchronous handlers (returning plain values or Promises) are handled automatically. If no
- *     response is expected, the return type can be `void`.
- * 
- * `makeMessages` returns an object containing two functions: `onMessage` and `sendMessage`, both of
- * which are configured with your defined `Contract`.
- */
-export const makeMessages = <C extends Record<any, (...args: any[]) => any>>(): BetterMessages<C> => {
+} => {
     const onMessage = <K extends keyof C>(...args: 
         | [handlers: { [K in keyof C]?: Handler<C, K> }]
         | [tag: K, handler: Handler<C,K>]
@@ -291,7 +240,56 @@ export const makeMessages = <C extends Record<any, (...args: any[]) => any>>(): 
 }
 
 
-export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKeys<S>): StrictMessages<S> => {
+export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKeys<S>): {
+    onMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+        handlers: {
+            [K in keyof C]: (
+                ...args: [...Input<C,K>, chrome.runtime.MessageSender]
+            ) => Output<C,K> | Promise<Output<C,K>>;
+        },
+    ): void;
+
+    createMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+        tabAndFrameId: {
+            tabId: number,
+            frameId: number,
+        }
+    ): {
+        [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+    }
+    createMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+        tabId: number,
+    ): {
+        [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+    }
+    createMessage<G extends keyof S, C extends S[G] = S[G]>(this: void): {
+         [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+     }
+
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        tag: K,
+        ...message: Input<C, K>
+    ): Promise<Output<C, K>>;
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        tabId: number,
+        tag: K,
+        ...message: Input<C, K>
+    ): Promise<Output<C, K>>
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        tabAndFrameId: {
+            tabId: number,
+            frameId: number,
+        },
+        tag: K,
+        ...message: Input<C, K>
+    ): Promise<Output<C, K>>
+} => {
     const onMessage = <
     G extends keyof S,
     K extends keyof C,
