@@ -1,9 +1,12 @@
-import { sendMessage } from "./common";
+import { sendMessage, sendMessageCustom } from "./common";
 
 const injectButton = document.getElementById("inject");
 if (!injectButton) throw new Error();
-injectButton.addEventListener("click", () => {
-    void sendMessage("inject");
+injectButton.addEventListener("click", async () => {
+    console.log("Inject");
+//    void sendMessage("inject");
+    const thing = await sendMessageCustom("greet", "Rory");
+    console.log("Thing: " + thing);
 });
 
 const divideButton = document.getElementById("input-1")

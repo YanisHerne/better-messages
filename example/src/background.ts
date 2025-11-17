@@ -1,4 +1,4 @@
-import { onMessage, sendMessage } from "./common";
+import { onMessage, sendMessage, onMessageCustom } from "./common";
 
 onMessage({
     inject: async () => {
@@ -34,3 +34,7 @@ onMessage({
     // add: (x, y) => "This is a string",
 });
 
+onMessageCustom("greet", (name) => {
+    console.log("Hello");
+    return `Hello, ${name}!`;
+});

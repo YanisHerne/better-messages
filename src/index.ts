@@ -398,3 +398,189 @@ export const makeStrictMessages = <S extends StrictContract>(..._args: UniqueKey
 
     return { onMessage, createMessage, sendMessage };
 }
+
+type InternalCustom<
+    C extends Contract,
+    K extends keyof C,
+> = {
+    tag: K
+    namespace: string
+    id: string
+} & ({
+    msg: Parameters<C[K]>
+    response: false
+} | {
+    msg: ReturnType<C[K]>
+    response: true
+})
+
+type AllInternalCustom <C extends Contract> = {
+    [K in keyof C]: InternalCustom<C,K>
+}[keyof C]
+
+export const makeCustom = <C extends Record<any, (...args: any[]) => any>>(
+    listen: (listener: (data: any) => Promise<any>) => void,
+    unlisten: (listener: (data: any) => Promise<any>) => void,
+    send: (data: any) => void,
+    namespace: string,
+): {
+    onMessage<K extends keyof C>(
+        this: void,
+        tag: K,
+        handler: (
+            ...args: Parameters<C[K]>
+        ) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>,
+    ): void
+    onMessage(
+        this: void,
+        handlers: {
+            [K in keyof C]?: (
+                ...args: Parameters<C[K]>
+            ) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>
+        },
+    ): void;
+
+    sendMessage<K extends keyof C>(
+        this: void,
+        tag: K,
+        ...message: Parameters<C[K]>
+    ): Promise<ReturnType<C[K]>>;
+} => {
+    const onMessage = <K extends keyof C>(...args: 
+        | [handlers: { [K in keyof C]?: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>> }]
+        | [tag: K, handler: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>> ]
+    ): void => {
+        listen(async (message: AllInternalCustom<C>) => {
+            if (message.response || message.namespace !== namespace) return;
+            let handler: ((...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>>) | undefined;
+            if (typeof args[0] === "string" && args[0] === message.tag) {
+                handler = args[1];
+            } else {
+                const handlers: {
+                    [K in keyof C]?: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>>
+                } = args[0] as {
+                        [K in keyof C]?: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>>
+                    };
+                handler = handlers[message.tag];
+            }
+            if (!handler) throw new Error("Unrecognized message"); 
+            const result = handler(...message.msg);
+            send({
+                tag: message.tag,
+                msg: result,
+                id: message.id,
+                response: true,
+            });
+        });
+    };
+
+    const sendMessage = async <K extends keyof C>(
+        tag: K,
+        ...message: Input<C,K>
+    ): Promise<Output<C, K>> => {
+        const internal: InternalCustom<C, K> = {
+            tag: tag,
+            namespace: namespace,
+            id: Date.now() + Math.floor(Math.random() * 1000) + "",
+            msg: message,
+            response: false,
+        };
+        return new Promise((resolve) => {
+            const listener = async (data: AllInternalCustom<C>) => {
+                if (data.tag === tag && data.id === internal.id && data.response) {
+                    unlisten(listener);
+                    resolve(data.msg);
+                }
+            }
+            listen(listener);
+            send(internal);
+        });
+    };
+
+    return { onMessage, sendMessage };
+}
+
+export const makeCustomStrict = <S extends StrictContract>(
+    listen: (listener: (data: any) => Promise<any>) => void,
+    unlisten: (listener: (data: any) => Promise<any>) => void,
+    send: (data: any) => void,
+    namespace: string,
+    ..._validStrictContract: UniqueKeys<S>
+): {
+    onMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+        handlers: {
+            [K in keyof C]?: (
+                ...args: Parameters<C[K]>
+            ) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>
+        },
+    ): void;
+
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        tag: K,
+        ...message: Parameters<C[K]>
+    ): Promise<ReturnType<C[K]>>;
+
+    createMessage<G extends keyof S, C extends S[G] = S[G]>(this: void): {
+         [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+     }
+} => {
+    const onMessage = <G extends keyof S, K extends keyof C, C extends S[G] = S[G]>(handlers: { 
+        [K in keyof C]: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>>
+    }): void => {
+        listen(async (message: AllInternalCustom<C>) => {
+            if (message.response || message.namespace !== namespace) return;
+            let handler: ((...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>>) | undefined;
+            handler = handlers[message.tag];
+            if (!handler) throw new Error("Unrecognized message"); 
+
+            const result = handler(...message.msg);
+            send({
+                tag: message.tag,
+                msg: result,
+                id: message.id,
+                response: true,
+            });
+        });
+    };
+
+    const sendMessage = async <C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        tag: K,
+        ...message: Parameters<C[K]>
+    ): Promise<ReturnType<C[K]>> => {
+        const internal: InternalCustom<C, K> = {
+            tag: tag,
+            namespace: namespace,
+            id: Date.now() + Math.floor(Math.random() * 1000) + "",
+            msg: message,
+            response: false,
+        };
+        return new Promise((resolve) => {
+            const listener = async (data: AllInternalCustom<C>) => {
+                if (data.tag === tag && data.id === internal.id && data.response) {
+                    unlisten(listener);
+                    resolve(data.msg);
+                }
+            }
+            listen(listener);
+            send(internal);
+        });
+    };
+
+    const createMessage = <G extends keyof S, C extends S[G] = S[G]>() => {
+        const proxy = new Proxy(
+            {} as C,
+            {
+                get: <K extends keyof C>(_target: C, tag: K, _receiver: unknown) => {
+                    return (...message: Input<C,K>) => {
+                        return sendMessage(tag, ...message as Parameters<Flatten<Uniqueify<S>>[K]>);
+                    }
+                },
+            },
+        );
+        return proxy as { [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>> };
+    }
+
+    return { onMessage, sendMessage, createMessage };
+}
