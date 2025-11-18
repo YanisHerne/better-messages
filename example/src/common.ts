@@ -1,4 +1,4 @@
-import { makeMessages, makeCustom } from "better-messages";
+import { makeMessages, makeCustomFactory } from "better-messages";
 
 export const { onMessage, sendMessage } = makeMessages<{
     inject: () => void
@@ -9,20 +9,24 @@ export const { onMessage, sendMessage } = makeMessages<{
     length: (x: string) => number
 }>();
 
-export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustom<{
+//export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustomFactory<{
+//    greet: (name: string) => string
+//}>(
+//    (listener) => {
+//        chrome.runtime.onMessage.addListener(listener);
+//        //window.addEventListener("message", listener);
+//    },
+//    (listener) => {
+//        chrome.runtime.onMessage.removeListener(listener);
+//        //window.removeEventListener("message", listener);
+//    },
+//    (data: any) => {
+//        chrome.runtime.sendMessage(data);
+//        //window.postMessage(data);
+//    },
+//    "custom"
+//);
+
+export const customMessages = makeCustomFactory<{
     greet: (name: string) => string
-}>(
-    (listener) => {
-        chrome.runtime.onMessage.addListener(listener);
-        //window.addEventListener("message", listener);
-    },
-    (listener) => {
-        chrome.runtime.onMessage.removeListener(listener);
-        //window.removeEventListener("message", listener);
-    },
-    (data: any) => {
-        chrome.runtime.sendMessage(data);
-        //window.postMessage(data);
-    },
-    "custom"
-);
+}>();

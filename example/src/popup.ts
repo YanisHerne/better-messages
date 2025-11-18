@@ -1,4 +1,17 @@
-import { sendMessage, sendMessageCustom } from "./common";
+import { sendMessage, customMessages} from "./common";
+
+const { sendMessage: sendMessageCustom } = customMessages(
+    (listener) => {
+        chrome.runtime.onMessage.addListener(listener);
+    },
+    (listener) => {
+        chrome.runtime.onMessage.removeListener(listener);
+    },
+    (data: any) => {
+        chrome.runtime.sendMessage(data);
+    },
+    "custom",
+);
 
 const injectButton = document.getElementById("inject");
 if (!injectButton) throw new Error();

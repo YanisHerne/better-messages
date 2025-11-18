@@ -1,4 +1,4 @@
-import { onMessage, sendMessage, onMessageCustom } from "./common";
+import { onMessage, sendMessage, customMessages } from "./common";
 
 onMessage({
     inject: async () => {
@@ -33,6 +33,19 @@ onMessage({
     // error:  Type 'string' is not assignable to type 'number | Promise<number>'.
     // add: (x, y) => "This is a string",
 });
+
+const { onMessage: onMessageCustom } = customMessages(
+    (listener) => {
+        chrome.runtime.onMessage.addListener(listener);
+    },
+    (listener) => {
+        chrome.runtime.onMessage.removeListener(listener);
+    },
+    (data: any) => {
+        chrome.runtime.sendMessage(data);
+    },
+    "custom",
+);
 
 onMessageCustom("greet", (name) => {
     console.log("Hello");

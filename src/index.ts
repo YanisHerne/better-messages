@@ -418,12 +418,14 @@ type AllInternalCustom <C extends Contract> = {
     [K in keyof C]: InternalCustom<C,K>
 }[keyof C]
 
-export const makeCustom = <C extends Record<any, (...args: any[]) => any>>(
+type CustomArgs = {
     listen: (listener: (data: any) => Promise<any>) => void,
     unlisten: (listener: (data: any) => Promise<any>) => void,
     send: (data: any) => void,
     namespace: string,
-): {
+}
+
+interface CustomMessages<C extends Contract>{
     onMessage<K extends keyof C>(
         this: void,
         tag: K,
@@ -445,7 +447,14 @@ export const makeCustom = <C extends Record<any, (...args: any[]) => any>>(
         tag: K,
         ...message: Parameters<C[K]>
     ): Promise<ReturnType<C[K]>>;
-} => {
+}
+
+export const makeCustomInternal = <C extends Record<any, (...args: any[]) => any>>(
+    listen: (listener: (data: any) => Promise<any>) => void,
+    unlisten: (listener: (data: any) => Promise<any>) => void,
+    send: (data: any) => void,
+    namespace: string,
+): CustomMessages<C> => {
     const onMessage = <K extends keyof C>(...args: 
         | [handlers: { [K in keyof C]?: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>> }]
         | [tag: K, handler: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>> ]
@@ -498,6 +507,84 @@ export const makeCustom = <C extends Record<any, (...args: any[]) => any>>(
     };
 
     return { onMessage, sendMessage };
+}
+
+//export const makeCustomBroken: {
+//    // Returns an object with onMessage and sendMessage
+//    <C extends Record<any, (...args: any[]) => any>>(config: CustomArgs): CustomMessages<C>
+//
+//    // Returns a function that then takes the config arguments and itself returns
+//    // the object with onMessage and sendMessage
+//    <C extends Record<any, (...args: any[]) => any>>(): (config: CustomArgs) => CustomMessages<C>
+//} = <C extends Record<any, (...args: any[]) => any>>(
+//    ...args: [] | [config: CustomArgs]
+//): CustomMessages<C> | ((config: CustomArgs) => CustomMessages<C>) => {
+//    if (args[0]) {
+//        const { listen, unlisten, send, namespace } = args[0];
+//        return makeCustomInternal<C>(listen, unlisten, send, namespace);
+//    } else {
+//        return (config: CustomArgs) => {
+//            const { listen, unlisten, send, namespace } = config;
+//            return makeCustomInternal<C>(listen, unlisten, send, namespace);
+//        }
+//    }
+//}
+
+export function makeCustom<C extends Record<any, (...args: any[]) => any>>(
+    config: CustomArgs,
+): CustomMessages<C>;
+export function makeCustom<C extends Record<any, (...args: any[]) => any>>(): (
+    config: CustomArgs,
+) => CustomMessages<C>;
+export function makeCustom<C extends Record<any, (...args: any[]) => any>>(
+    ...args: [config: CustomArgs] | []
+): CustomMessages<C> | ((config: CustomArgs) => CustomMessages<C>) {
+    if (args.length === 1) {
+        const { listen, unlisten, send, namespace } = args[0];
+        return makeCustomInternal<C>(listen, unlisten, send, namespace);
+    } else {
+        // This is the function returned by the second overload
+        return (config: CustomArgs) => {
+            const { listen, unlisten, send, namespace } = config;
+            return makeCustomInternal<C>(listen, unlisten, send, namespace);
+        };
+    }
+}
+
+export const makeCustomFactory: <C extends Record<any, (...args: any[]) => any>>() => (
+    listen: (listener: (data: any) => Promise<any>) => void,
+    unlisten: (listener: (data: any) => Promise<any>) => void,
+    send: (data: any) => void,
+    namespace: string,
+) => {
+    onMessage<K extends keyof C>(
+        this: void,
+        tag: K,
+        handler: (
+            ...args: Parameters<C[K]>
+        ) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>,
+    ): void
+    onMessage(
+        this: void,
+        handlers: {
+            [K in keyof C]?: (
+                ...args: Parameters<C[K]>
+            ) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>
+        },
+    ): void;
+
+    sendMessage<K extends keyof C>(
+        this: void,
+        tag: K,
+        ...message: Parameters<C[K]>
+    ): Promise<ReturnType<C[K]>>;
+} = <C extends Record<any, (...args: any[]) => any>>() => (
+    listen: (listener: (data: any) => Promise<any>) => void,
+    unlisten: (listener: (data: any) => Promise<any>) => void,
+    send: (data: any) => void,
+    namespace: string,
+) => {
+    return makeCustom<C>({ listen, unlisten, send, namespace });
 }
 
 export const makeCustomStrict = <S extends StrictContract>(
