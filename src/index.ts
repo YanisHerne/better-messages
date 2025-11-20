@@ -463,87 +463,6 @@ interface CustomMessages<C extends Contract>{
     ): Promise<ReturnType<C[K]>>;
 }
 
-export const makeCustomInternal = <C extends Record<any, (...args: any[]) => any>>(
-    listen: (listener: (data: any) => Promise<any>) => void,
-    unlisten: (listener: (data: any) => Promise<any>) => void,
-    send: (data: any) => void,
-    namespace: string,
-): CustomMessages<C> => {
-    const onMessage = <K extends keyof C>(...args:
-        | [handlers: { [K in keyof C]?: (...args: Parameters<C[K]>) => ReturnType<C[K]> | Promise<ReturnType<C[K]>> }]
-        | [tag: K, handler: (...args: Parameters<C[K]>) => ReturnType<C[K]> | Promise<ReturnType<C[K]>> ]
-    ): void => {
-        listen(async (message: AllInternalCustom<C>) => {
-            if (message.response || message.namespace !== namespace) return;
-            let handler: ((...args: Parameters<C[K]>) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>) | undefined;
-            if (typeof args[0] === "string" && args[0] === message.tag) {
-                handler = args[1];
-            } else {
-                const handlers: {
-                    [K in keyof C]?: (...args: Parameters<C[K]>) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>
-                } = args[0] as {
-                        [K in keyof C]?: (...args: Parameters<C[K]>) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>
-                    };
-                handler = handlers[message.tag];
-            }
-            if (!handler) throw new Error("Unrecognized message");
-            const result = handler(...message.msg);
-            send({
-                tag: message.tag,
-                msg: result,
-                id: message.id,
-                response: true,
-            });
-        });
-    };
-
-    const sendMessage = async <K extends keyof C>(
-        tag: K,
-        ...message: Parameters<C[K]>
-    ): Promise<Output<C, K>> => {
-        const internal: InternalCustom<C, K> = {
-            tag: tag,
-            namespace: namespace,
-            id: Date.now() + Math.floor(Math.random() * 1000) + "",
-            msg: message,
-            response: false,
-        };
-        return new Promise((resolve) => {
-            const listener = async (data: AllInternalCustom<C>) => {
-                if (data.tag === tag && data.id === internal.id && data.response) {
-                    unlisten(listener);
-                    resolve(data.msg);
-                }
-            }
-            listen(listener);
-            send(internal);
-        });
-    };
-
-    return { onMessage, sendMessage };
-}
-
-export function makeCustom<C extends Record<any, (...args: any[]) => any>>(
-    config: CustomArgs,
-): CustomMessages<C>;
-export function makeCustom<C extends Record<any, (...args: any[]) => any>>(): (
-    config: CustomArgs,
-) => CustomMessages<C>;
-export function makeCustom<C extends Record<any, (...args: any[]) => any>>(
-    ...args: [config: CustomArgs] | []
-): CustomMessages<C> | ((config: CustomArgs) => CustomMessages<C>) {
-    if (args.length === 1) {
-        const { listen, unlisten, send, namespace } = args[0];
-        return makeCustomInternal<C>(listen, unlisten, send, namespace);
-    } else {
-        // This is the function returned by the second overload
-        return (config: CustomArgs) => {
-            const { listen, unlisten, send, namespace } = config;
-            return makeCustomInternal<C>(listen, unlisten, send, namespace);
-        };
-    }
-}
-
 type CustomStrictMessages<S extends StrictContract> = {
     onMessage<G extends keyof S, C extends S[G] = S[G]>(
         this: void,
@@ -561,25 +480,46 @@ type CustomStrictMessages<S extends StrictContract> = {
     ): Promise<ReturnType<C[K]>>;
 
     createMessage<G extends keyof S, C extends S[G] = S[G]>(this: void): {
-         [K in keyof C]: (...message: Input<C,K>) => Promise<Output<C,K>>
+         [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>>
      }
 }
 
-export const makeCustomStrictInternal = <S extends StrictContract>(
-    listen: (listener: (data: any) => Promise<any>) => void,
-    unlisten: (listener: (data: any) => Promise<any>) => void,
-    send: (data: any) => void,
-    namespace: string,
-): CustomStrictMessages<S> => {
-    const onMessage = <G extends keyof S, K extends keyof C, C extends S[G] = S[G]>(handlers: {
-        [K in keyof C]: (...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>>
-    }): void => {
-        listen(async (message: AllInternalCustom<C>) => {
-            if (message.response || message.namespace !== namespace) return;
-            let handler: ((...args: Input<C,K>) => Output<C,K> | Promise<Output<C,K>>) | undefined;
-            handler = handlers[message.tag];
-            if (!handler) throw new Error("Unrecognized message");
+type NormalOrStrict<C extends Contract | StrictContract> = 
+    C extends Contract
+        ? C
+        : C extends StrictContract
+            ? C[keyof C]
+            : never
 
+export const makeCustomInternal = <C extends Contract | StrictContract>(
+    { listen, unlisten, send, namespace }: CustomArgs
+): C extends Contract
+    ? CustomMessages<C>
+    : C extends StrictContract
+        ? CustomStrictMessages<C>
+        : never => {
+    const onMessage = <K extends keyof C>(...args:
+        C extends Contract
+        ? | [handlers: { [K in keyof C]?: (...args: Parameters<C[K]>) => ReturnType<C[K]> | Promise<ReturnType<C[K]>> }]
+          | [tag: K, handler: (...args: Parameters<C[K]>) => ReturnType<C[K]> | Promise<ReturnType<C[K]>> ]
+        : C extends StrictContract
+            ? [handlers: {[K in keyof C[keyof C]]: (...args: Parameters<C[keyof C][K]>) => ReturnType<C[keyof C][K]> | Promise<ReturnType<C[keyof C][K]>>}]
+            : never
+    ): void => {
+        listen(async (message: AllInternalCustom<NormalOrStrict<C>>) => {
+            if (message.response || message.namespace !== namespace) return;
+            let handler: ((...args: Parameters<NormalOrStrict<C>[K]>) => ReturnType<NormalOrStrict<C>[K]> | Promise<ReturnType<NormalOrStrict<C>[K]>>) | undefined;
+            if (typeof args[0] === "string" && args[0] === message.tag) {
+                handler = args[1];
+            } else {
+                const handlers: {
+                    [K in keyof C]?: (...args: Parameters<NormalOrStrict<C>[K]>) => ReturnType<NormalOrStrict<C>[K]> | Promise<ReturnType<NormalOrStrict<C>[K]>>
+                } = args[0] as {
+                        [K in keyof C]?: (...args: Parameters<NormalOrStrict<C>[K]>) => ReturnType<NormalOrStrict<C>[K]> | Promise<ReturnType<NormalOrStrict<C>[K]>>
+                    };
+                handler = handlers[message.tag];
+            }
+            if (!handler) throw new Error("Unrecognized message");
             const result = handler(...message.msg);
             send({
                 tag: message.tag,
@@ -590,11 +530,11 @@ export const makeCustomStrictInternal = <S extends StrictContract>(
         });
     };
 
-    const sendMessage = async <C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+    const sendMessage = async <K extends keyof C>(
         tag: K,
-        ...message: Parameters<C[K]>
-    ): Promise<ReturnType<C[K]>> => {
-        const internal: InternalCustom<C, K> = {
+        ...message: Parameters<NormalOrStrict<C>[K]> 
+    ): Promise<ReturnType<NormalOrStrict<C>[K]>> => {
+        const internal: InternalCustom<NormalOrStrict<C>, K> = {
             tag: tag,
             namespace: namespace,
             id: Date.now() + Math.floor(Math.random() * 1000) + "",
@@ -602,7 +542,7 @@ export const makeCustomStrictInternal = <S extends StrictContract>(
             response: false,
         };
         return new Promise((resolve) => {
-            const listener = async (data: AllInternalCustom<C>) => {
+            const listener = async (data: AllInternalCustom<NormalOrStrict<C>>) => {
                 if (data.tag === tag && data.id === internal.id && data.response) {
                     unlisten(listener);
                     resolve(data.msg);
@@ -613,44 +553,61 @@ export const makeCustomStrictInternal = <S extends StrictContract>(
         });
     };
 
-    const createMessage = <G extends keyof S, C extends S[G] = S[G]>() => {
-        const proxy = new Proxy(
-            {} as C,
-            {
-                get: <K extends keyof C>(_target: C, tag: K, _receiver: unknown) => {
-                    return (...message: Input<C,K>) => {
-                        return sendMessage(tag, ...message as Parameters<Flatten<Uniqueify<S>>[K]>);
-                    }
-                },
+    const createMessage = <G extends keyof C, S extends C[G] extends Contract ? C[G] : never>() => new Proxy(
+        {} as S,
+        {
+            get: <K extends keyof S>(_target: S, tag: K, _receiver: unknown) => {
+                return (...message: Parameters<NormalOrStrict<C>[K]>) => {
+                    return sendMessage(tag, ...message);
+                }
             },
-        );
-        return proxy as { [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>> };
-    }
+        },
+    );
 
-    return { onMessage, sendMessage, createMessage };
+    return { onMessage, sendMessage, createMessage } as C extends Contract
+        ? CustomMessages<C>
+        : C extends StrictContract
+            ? CustomStrictMessages<C>
+            : never;
 }
 
-export function makeCustomStrict<S extends StrictContract>(
+export function makeCustom<C extends Record<any, (...args: any[]) => any>>(
+    config: CustomArgs,
+): CustomMessages<C>;
+export function makeCustom<C extends Record<any, (...args: any[]) => any>>(): (
+    config: CustomArgs,
+) => CustomMessages<C>;
+export function makeCustom<S extends StrictContract>(
     config: CustomArgs,
     ..._validStrictContract: UniqueKeys<S>
 ): CustomStrictMessages<S>
-export function makeCustomStrict<S extends StrictContract>(
+export function makeCustom<S extends StrictContract>(
     ..._validStrictContract: UniqueKeys<S>
 ): (
     config: CustomArgs,
 ) => CustomStrictMessages<S>
-export function makeCustomStrict<S extends StrictContract>(...args:
-    | [config: CustomArgs, ..._validStrictContract: UniqueKeys<S>]
-    | [..._validStrictContract: UniqueKeys<S>]
-):  CustomStrictMessages<S> | ((config: CustomArgs) =>  CustomStrictMessages<S>) {
-    if (args[0]) {
-        const { listen, unlisten, send, namespace } = args[0] as CustomArgs;
-        return makeCustomStrictInternal<S>(listen, unlisten, send, namespace);
+export function makeCustom<C extends Contract | StrictContract>(
+    ...args: C extends Contract
+    ? [config: CustomArgs] | []
+    : C extends StrictContract
+        ? [config: CustomArgs, ..._validStrictContract: UniqueKeys<C>] | [..._validStrictContract: UniqueKeys<C>]
+        : never
+): (C extends Contract
+    ? CustomMessages<C>
+    : C extends StrictContract
+        ? CustomStrictMessages<C>
+        : never)
+| ((config: CustomArgs) => C extends Contract
+    ? CustomMessages<C>
+    : C extends StrictContract
+        ? CustomStrictMessages<C>
+        : never) {
+    if (args.length === 1) {
+        return makeCustomInternal<C>(args[0]);
     } else {
         // This is the function returned by the second overload
         return (config: CustomArgs) => {
-            const { listen, unlisten, send, namespace } = config;
-            return makeCustomStrictInternal<S>(listen, unlisten, send, namespace);
+            return makeCustomInternal<C>(config);
         };
     }
 }
