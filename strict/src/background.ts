@@ -1,4 +1,4 @@
-import { onMessage, sendMessage } from "./common";
+import { onMessage, sendMessage, onMessageCustom, sendMessageCustom } from "./common";
 
 onMessage<"background">({
     inject: async () => {
@@ -34,3 +34,10 @@ onMessage<"background">({
     // add: (_, x, y) => "This is a string",
 });
 
+onMessageCustom<"background">({
+    greet: async (name) => {
+        const response = await sendMessageCustom("respond", "How is your day going?");
+        console.log("Response: " + response);
+        return `Hello, ${name}!`;
+    }
+});

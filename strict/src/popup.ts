@@ -1,4 +1,4 @@
-import { createMessage } from "./common";
+import { createMessage, onMessageCustom, sendMessageCustom } from "./common";
 
 const background = createMessage<"background">();
 
@@ -50,3 +50,13 @@ addButton.addEventListener("click", (async () => {
     console.log("10 plus 2 makes " + num);
 }) as () => void);
 
+const helloButton = document.getElementById("hello")
+if (!helloButton) throw new Error();
+helloButton.addEventListener("click", (async () => {
+    const greeting = await sendMessageCustom("greet", "Arthur Dent");
+    console.log(greeting)
+}) as () => void);
+
+onMessageCustom<"popup">({
+    respond: (query) => `I'm not sure I understand your query of "${query}".`
+});

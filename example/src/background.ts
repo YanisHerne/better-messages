@@ -34,18 +34,18 @@ onMessage({
     // add: (x, y) => "This is a string",
 });
 
-const { onMessage: onMessageCustom } = customMessages(
-    (listener) => {
+const { onMessage: onMessageCustom } = customMessages({
+    listen: (listener) => {
         chrome.runtime.onMessage.addListener(listener);
     },
-    (listener) => {
+    unlisten: (listener) => {
         chrome.runtime.onMessage.removeListener(listener);
     },
-    (data: any) => {
+    send: (data: any) => {
         chrome.runtime.sendMessage(data);
     },
-    "custom",
-);
+    namespace: "custom",
+});
 
 onMessageCustom("greet", (name) => {
     console.log("Hello");

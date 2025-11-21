@@ -1,4 +1,4 @@
-import { makeStrictMessages } from "better-messages";
+import { makeStrictMessages, makeCustom } from "better-messages";
 
 export const { onMessage, createMessage, sendMessage } = makeStrictMessages<{
     background: {
@@ -12,3 +12,23 @@ export const { onMessage, createMessage, sendMessage } = makeStrictMessages<{
         length: (x: string) => number
     }
 }>();
+
+export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustom<{
+    background: {
+        greet: (name: string) => string
+    },
+    popup: {
+        respond: (query: string) => string
+    },
+}>({
+    listen: (listener) => {
+        chrome.runtime.onMessage.addListener(listener);
+    },
+    unlisten: (listener) => {
+        chrome.runtime.onMessage.removeListener(listener);
+    },
+    send: (data: any) => {
+        chrome.runtime.sendMessage(data);
+    },
+    namespace: "custom",
+});
