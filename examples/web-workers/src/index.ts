@@ -4,12 +4,11 @@ const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "modu
 const { onMessage, sendMessage } = messages({
     listen: (listener) => {
         console.log("Main thread listening")
-        worker.addEventListener("message", (event) => {
+        const callback = (event: MessageEvent) => {
             listener(event.data);
-        });
-    },
-    unlisten: (listener) => {
-        worker.removeEventListener("message", listener);
+        }
+        worker.addEventListener("message", callback);
+        return () => worker.removeEventListener("message", callback);
     },
     send: (data) => {
         console.log("Main thread sending")

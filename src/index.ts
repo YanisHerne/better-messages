@@ -109,22 +109,7 @@ type Flatten<T extends StrictContract> =
         ? FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>>
         : never;
 
-/**
- * The `makeMessages` function is the entry point for `better-messages`. It takes a generic type
- * parameter to define your message **Contract**. This contract is an object type where:
- *
- * * Keys are the names of your messages.
- * * Values are functions, where:
- *   * The **parameter types** define the data sent with the message (`Input<C, K>`).
- *   * The **return types** define the data received as a response (`Output<C, K>`).
- *   * You do **not** need to explicitly wrap return types in `Promise<T>`. Both synchronous and
- *     asynchronous handlers (returning plain values or Promises) are handled automatically. If no
- *     response is expected, the return type can be `void`.
- *
- * `makeMessages` returns an object containing two functions: `onMessage` and `sendMessage`, both of
- * which are configured with your defined `Contract`.
- */
-export const makeMessages = <C extends Record<any, (...args: any[]) => any>>(): {
+interface BetterMessages<C extends Contract> {
     onMessage<K extends keyof C>(
         this: void,
         tag: K,
@@ -161,9 +146,105 @@ export const makeMessages = <C extends Record<any, (...args: any[]) => any>>(): 
         tag: K,
         ...message: Input<C, K>
     ): Promise<Output<C, K>>;
-} => {
+}
+
+interface StrictMessages<S extends StrictContract> {
+    onMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+        handlers: {
+            [K in keyof C]: (
+                ...args: [...Input<C, K>, chrome.runtime.MessageSender]
+            ) => Output<C, K> | Promise<Output<C, K>>;
+        },
+    ): void;
+
+    createMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+        tabAndFrameId: {
+            tabId: number;
+            frameId: number;
+        },
+    ): {
+        [K in keyof C]: (...message: Input<C, K>) => Promise<Output<C, K>>;
+    };
+    createMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+        tabId: number,
+    ): {
+        [K in keyof C]: (...message: Input<C, K>) => Promise<Output<C, K>>;
+    };
+    createMessage<G extends keyof S, C extends S[G] = S[G]>(
+        this: void,
+    ): {
+        [K in keyof C]: (...message: Input<C, K>) => Promise<Output<C, K>>;
+    };
+
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        tag: K,
+        ...message: Input<C, K>
+    ): Promise<Output<C, K>>;
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        tabId: number,
+        tag: K,
+        ...message: Input<C, K>
+    ): Promise<Output<C, K>>;
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        tabAndFrameId: {
+            tabId: number;
+            frameId: number;
+        },
+        tag: K,
+        ...message: Input<C, K>
+    ): Promise<Output<C, K>>;
+}
+
+/**
+ * The `makeMessages` function is the entry point for `better-messages`. It takes a generic type
+ * parameter to define your message **Contract**. This contract is an object type where:
+ *
+ * * Keys are the names of your messages.
+ * * Values are functions, where:
+ *   * The **parameter types** define the data sent with the message (`Input<C, K>`).
+ *   * The **return types** define the data received as a response (`Output<C, K>`).
+ *   * You do **not** need to explicitly wrap return types in `Promise<T>`. Both synchronous and
+ *     asynchronous handlers (returning plain values or Promises) are handled automatically. If no
+ *     response is expected, the return type can be `void`.
+ *
+ * `makeMessages` returns an object containing two functions: `onMessage` and `sendMessage`, both of
+ * which are configured with your defined `Contract`.
+ */
+export function makeMessages <C extends Record<any, (...args: any[]) => any>>(): BetterMessages<C>
+export function makeMessages <C extends StrictContract>(..._args: UniqueKeys<C>): StrictMessages<C>
+export function makeMessages <S extends Contract | StrictContract>(..._args: S extends Contract
+    ? [] 
+    : S extends StrictContract
+        ? UniqueKeys<S>
+        : never
+): (
+S extends Contract
+    ? BetterMessages<S>
+    : S extends StrictContract
+        ? StrictMessages<S>
+        : never
+) {
+    type C = NormalOrStrict<S>
     const onMessage = <K extends keyof C>(
-        ...args: [handlers: { [K in keyof C]?: Handler<C, K> }] | [tag: K, handler: Handler<C, K>]
+        ...args: S extends Contract
+            ? [
+                handlers: { [K in keyof C]?: Handler<C, K> }
+            ] | [
+                tag: K, handler: Handler<C, K>
+            ]
+            : S extends StrictContract
+                ? [
+                    handlers: {
+                        [K in keyof S[keyof S]]: Handler<S[keyof S], K>
+                    },
+                ]
+                : never
     ): void => {
         chrome.runtime.onMessage.addListener(
             (
@@ -241,173 +322,39 @@ export const makeMessages = <C extends Record<any, (...args: any[]) => any>>(): 
         }
     };
 
-    return { onMessage, sendMessage };
-};
-
-export const makeStrictMessages = <S extends StrictContract>(
-    ..._args: UniqueKeys<S>
-): {
-    onMessage<G extends keyof S, C extends S[G] = S[G]>(
-        this: void,
-        handlers: {
-            [K in keyof C]: (
-                ...args: [...Input<C, K>, chrome.runtime.MessageSender]
-            ) => Output<C, K> | Promise<Output<C, K>>;
-        },
-    ): void;
-
-    createMessage<G extends keyof S, C extends S[G] = S[G]>(
-        this: void,
-        tabAndFrameId: {
-            tabId: number;
-            frameId: number;
-        },
-    ): {
-        [K in keyof C]: (...message: Input<C, K>) => Promise<Output<C, K>>;
-    };
-    createMessage<G extends keyof S, C extends S[G] = S[G]>(
-        this: void,
-        tabId: number,
-    ): {
-        [K in keyof C]: (...message: Input<C, K>) => Promise<Output<C, K>>;
-    };
-    createMessage<G extends keyof S, C extends S[G] = S[G]>(
-        this: void,
-    ): {
-        [K in keyof C]: (...message: Input<C, K>) => Promise<Output<C, K>>;
-    };
-
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        this: void,
-        tag: K,
-        ...message: Input<C, K>
-    ): Promise<Output<C, K>>;
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        this: void,
-        tabId: number,
-        tag: K,
-        ...message: Input<C, K>
-    ): Promise<Output<C, K>>;
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        this: void,
-        tabAndFrameId: {
-            tabId: number;
-            frameId: number;
-        },
-        tag: K,
-        ...message: Input<C, K>
-    ): Promise<Output<C, K>>;
-} => {
-    const onMessage = <G extends keyof S, K extends keyof C, C extends S[G] = S[G]>(
-        ...args: [handlers: { [K in keyof C]: Handler<C, K> }]
-    ): void => {
-        chrome.runtime.onMessage.addListener(
-            (
-                message: AllInternalInputs<C>,
-                sender: chrome.runtime.MessageSender,
-                sendResponse: (response?: AllInternalOutputs<C>) => void,
-            ): boolean => {
-                let handler: Handler<C, K> | undefined;
-                const handlers: {
-                    [K in keyof C]: Handler<C, K>;
-                } = args[0] as {
-                    [K in keyof C]: Handler<C, K>;
-                };
-                handler = handlers[message.tag];
-                if (!handler) return false;
-
-                const result = handler(
-                    ...([...message.msg, sender] as [
-                        ...Parameters<C[K]>,
-                        chrome.runtime.MessageSender,
-                    ]),
-                );
-                if (result instanceof Promise) {
-                    // Async is allowed in the modern API, but the function
-                    // return `true` early so that the browser knows to keep
-                    // the port open for the sendResponse callback to fire
-                    void result.then(sendResponse);
-                    return true;
-                } else {
-                    sendResponse(result);
-                    return false;
-                }
-            },
-        );
-    };
-
-    const sendMessage = <C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        ...args:
-            | [tag: K, ...message: Input<C, K>]
-            | [tabId: number, tag: K, ...message: Input<C, K>]
-            | [tabAndFrameId: { tabId: number; frameId: number }, tag: K, ...message: Input<C, K>]
-    ): Promise<Output<C, K>> => {
-        // The type assertions below are required since typescript can't
-        // do type narrowing over variadic tuples, apparently
-        if (typeof args[0] === "number") {
-            // In this case, the overload for sending to a tab has been called
-            const internal: InternalInput<C, K> = {
-                tag: args[1],
-                msg: args.slice(2) as InternalInput<C, K>["msg"],
-            };
-            return chrome.tabs.sendMessage(args[0], internal);
-        } else if (typeof args[0] === "object") {
-            // In this case, the overload for sending to a tab and a frame has
-            // been called
-            const internal: InternalInput<C, K> = {
-                tag: args[1],
-                msg: args.slice(2) as InternalInput<C, K>["msg"],
-            };
-            return chrome.tabs.sendMessage(args[0].tabId, internal, { frameId: args[0].frameId });
-        } else {
-            // In this case, the overload for sending via the runtime object
-            // (to the background script or popup script) has been called
-            const internal: InternalInput<C, K> = {
-                tag: args[0],
-                msg: args.slice(1) as InternalInput<C, K>["msg"],
-            };
-            return chrome.runtime.sendMessage<InternalInput<C, K>, Output<C, K>>(internal);
-        }
-    };
-
-    const createMessage = <G extends keyof S, C extends S[G] = S[G]>(
-        ...args:
-            | []
-            | [tabId: number]
-            | [
-                  tabAndFrameId: {
-                      tabId: number;
-                      frameId: number;
-                  },
-              ]
-    ) => {
+    const createMessage = <G extends keyof C, S extends C[G] extends Contract ? C[G] : never>(...args:
+        | []
+        | [ tabId: number ]
+        | [
+            tabAndFrameId: {
+                tabId: number;
+                frameId: number;
+            }
+        ]
+    ) =>
         // Since the original contract is not available at runtime, a real
         // object using its keys is impossible to construct. We simply fake the
         // object using a proxy object and type assertions. Once a property is
         // accessed on the object (which will be checked by typescript), all
         // the necessary information to construct the message is available at
         // runtime.
-        const proxy = new Proxy({} as C, {
-            get: <K extends keyof C>(_target: C, tag: K, _receiver: unknown) => {
-                return (...message: Input<C, K>) => {
-                    // Save space by delegating to the previous overloads. Indexing into the
-                    // strict contract vs flattening makes typescript angry, requiring the
-                    // type assertion. It is safe, however, since the type pre-assertion is
-                    // actually stricter.
-                    return sendMessage(
-                        ...args,
-                        tag,
-                        ...(message as Parameters<Flatten<Uniqueify<S>>[K]>),
-                    );
+        new Proxy({} as S, {
+            // Save space by delegating to the previous overloads. Indexing into the
+            // strict contract vs flattening makes typescript angry, requiring the
+            // type assertion. It is safe, however, since the type pre-assertion is
+            // actually stricter.
+            get: <K extends keyof S>(_target: S, tag: K, _receiver: unknown) => {
+                return (...message: Parameters<C[K]>) => {
+                    return sendMessage(...args, tag, ...message);
                 };
             },
         });
-        return proxy as {
-            [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>>;
-        };
-    };
 
-    return { onMessage, createMessage, sendMessage };
+    return { onMessage, sendMessage, createMessage } as S extends Contract
+        ? BetterMessages<S>
+        : S extends StrictContract
+            ? StrictMessages<S>
+            : never;
 };
 
 /**
@@ -443,8 +390,7 @@ type AllInternalCustom<C extends Contract> = {
 }[keyof C];
 
 type CustomArgs = {
-    listen: (listener: (data: any) => Promise<any>) => void;
-    unlisten: (listener: (data: any) => Promise<any>) => void;
+    listen: (listener: (data: any) => Promise<any>) => () => void;
     send: (data: any) => void;
     namespace: string;
 };
@@ -508,7 +454,6 @@ type CustomHandler<
 
 export const makeCustomInternal = <C extends Contract | StrictContract>({
     listen,
-    unlisten,
     send,
     namespace,
 }: CustomArgs): C extends Contract
@@ -581,11 +526,11 @@ export const makeCustomInternal = <C extends Contract | StrictContract>({
         return new Promise((resolve) => {
             const listener = async (data: AllInternalCustom<NormalOrStrict<C>>) => {
                 if (data.tag === tag && data.id === internal.id && data.response) {
-                    unlisten(listener);
+                    unlisten();
                     resolve(data.msg);
                 }
             };
-            listen(listener);
+            const unlisten = listen(listener);
             send(internal);
         });
     };

@@ -3,9 +3,7 @@ import { sendMessage, customMessages} from "./common";
 const { sendMessage: sendMessageCustom } = customMessages({
     listen: (listener) => {
         chrome.runtime.onMessage.addListener(listener);
-    },
-    unlisten: (listener) => {
-        chrome.runtime.onMessage.removeListener(listener);
+        return () => chrome.runtime.onMessage.removeListener(listener);
     },
     send: (data: any) => {
         chrome.runtime.sendMessage(data);

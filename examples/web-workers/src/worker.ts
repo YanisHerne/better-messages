@@ -3,14 +3,13 @@ import { messages } from "./common";
 const { onMessage, sendMessage } = messages({
     listen: (listener) => {
         console.log("worker listening")
-        self.addEventListener("message", (event) => {
+        const callback = (event: MessageEvent) => {
             console.log("worker got:")
             console.log(event.data);
             listener(event.data)
-        });
-    },
-    unlisten: (listener) => {
-        self.removeEventListener("message", listener);
+        }
+        self.addEventListener("message", callback);
+        return () => self.removeEventListener("message", callback);
     },
     send: (data) => {
         console.log("worker sending")
