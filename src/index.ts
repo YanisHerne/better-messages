@@ -410,6 +410,15 @@ export const makeStrictMessages = <S extends StrictContract>(
     return { onMessage, createMessage, sendMessage };
 };
 
+/**
+ * The type in which the data is wrapped so that it can be reasoned about
+ * inside the internal library functions.
+ * * tag: the name of the method
+ * * namespace: is to prevent multiple instances from colliding
+ * * id: is to ensure that messages of the same tag do not collide
+ * * msg: the data itself
+ * * response: true for the response, false for the sending
+ */
 type InternalCustom<C extends Contract, K extends keyof C> = {
     tag: K;
     namespace: string;
@@ -425,6 +434,10 @@ type InternalCustom<C extends Contract, K extends keyof C> = {
       }
 );
 
+/**
+ * The type of all possible messages that a listener may receive, which is the
+ * internal input types for every possible method in the contract.
+ */
 type AllInternalCustom<C extends Contract> = {
     [K in keyof C]: InternalCustom<C, K>;
 }[keyof C];
@@ -505,16 +518,12 @@ export const makeCustomInternal = <C extends Contract | StrictContract>({
         : never => {
     const onMessage = <K extends keyof C>(
         ...args: C extends Contract
-            ?
-                  | [
-                        handlers: {
-                            [K in keyof C]?: CustomHandler<C, K>
-                        },
-                    ]
-                  | [
-                        tag: K,
-                        handler: CustomHandler<C, K>
-                    ]
+            ? [ 
+                handlers: { [K in keyof C]?: CustomHandler<C, K> }
+            ] | [
+                tag: K,
+                handler: CustomHandler<C, K>
+            ]
             : C extends StrictContract
               ? [
                     handlers: {
@@ -614,9 +623,12 @@ export function makeCustom<C extends Contract | StrictContract>(
     ...args: C extends Contract
         ? [config: CustomArgs] | []
         : C extends StrictContract
-          ?
-                | [config: CustomArgs, ..._validStrictContract: UniqueKeys<C>]
-                | [..._validStrictContract: UniqueKeys<C>]
+          ? [
+            config: CustomArgs,
+            ..._validStrictContract: UniqueKeys<C>
+          ] | [
+            ..._validStrictContract: UniqueKeys<C>
+          ]
           : never
 ):
     | (C extends Contract

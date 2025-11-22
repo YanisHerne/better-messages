@@ -1,0 +1,27 @@
+{
+    "name": "better-messages-example-web-worker",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "keywords": [],
+    "author": "Yanis Herne",
+    "license": "ISC",
+    "packageManager": "pnpm@10.8.0",
+    "dependencies": {
+        "better-messages": "workspace:*"
+    },
+    "devDependencies": {
+        "@babel/preset-typescript": "^7.28.5",
+        "@rollup/plugin-babel": "^6.1.0",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rollup/plugin-typescript": "^12.3.0",
+        "rollup": "^4.52.5",
+        "tslib": "^2.8.1",
+        "typescript": "^5.9.3",
+        "vite": "^7.2.0"
+    }
+}
