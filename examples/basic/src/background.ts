@@ -9,14 +9,14 @@ onMessage({
             target: { tabId: tabId },
             files: ['./content.js']
         }); 
-        await sendMessage(tabId, "hello", "Hello from background");
+        await sendMessage(tabId, "hello", "Hello from background to content");
 
         let count = 0;
         setInterval(async () => {
             count++;
             if (!tabId) return;
             try {
-                await sendMessage(tabId, "hello", `Hello for ${count} times`);
+                await sendMessage(tabId, "hello", `Hello for ${count} times from background to content`);
             } catch {}
         }, 1000);
     },
@@ -46,6 +46,6 @@ const { onMessage: onMessageCustom } = customMessages({
 });
 
 onMessageCustom("greet", (name) => {
-    console.log("Hello");
+    console.log("Hello with custom messages");
     return `Hello, ${name}!`;
 });

@@ -27,3 +27,19 @@ export const { onMessage, sendMessage } = makeMessages<{
 export const customMessages = makeCustom<{
     greet: (name: string) => string
 }>();
+
+export const { sendMessage: sendInjected, onMessage: listenInjected } = makeCustom<{
+    greet: (name: string) => string
+}>({
+    listen: (listener) => {
+        const callback = (event: CustomEvent<{detail: any}>) => {
+            listener(event.detail)
+        }
+        document.body.addEventListener("better-messages-injected", callback as (event: Event) => void);
+        return () => document.body.removeEventListener("better-messages-injected", callback as (event: Event) => void);
+    },
+    send: (data: any) => {
+        document.body.dispatchEvent(new CustomEvent<{ detail: any}>("better-messages-injected", { detail: data }));
+    },
+    namespace: "injected",
+});

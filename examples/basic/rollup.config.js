@@ -74,6 +74,28 @@ export default [
                 ],
                 sourceMaps: true,
             }),
+        ],
+    },
+    {
+        input: "src/inject.ts",
+        output: {
+            file: "dist/inject.js",
+            format: "esm",
+            sourcemap: true,
+        },
+        plugins: [
+            nodeResolve(),
+            typescript({
+                sourceMap: true,
+            }),
+            babel({
+                babelHelpers: 'bundled',
+                extensions: ['.ts', '.tsx'],
+                presets: [
+                    ["@babel/preset-typescript"],
+                ],
+                sourceMaps: true,
+            }),
             {writeBundle() {
                 fs.cpSync("./static", "./dist", { recursive: true });
             }},

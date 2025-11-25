@@ -440,6 +440,28 @@ type CustomStrictMessages<S extends StrictContract> = {
     };
 };
 
+type CustomOption<C extends Contract, O extends any = undefined> = O extends undefined
+    ? {}
+    : {
+    sendMessage<K extends keyof C>(
+        this: void,
+        option: O,
+        tag: K,
+        ...message: Parameters<C[K]>
+    ): Promise<ReturnType<C[K]>>;
+}
+
+type CustomStrictOption<S extends StrictContract, O extends any = undefined> = O extends undefined
+    ? {}
+    : {
+    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+        this: void,
+        option: O,
+        tag: K,
+        ...message: Parameters<C[K]>
+    ): Promise<ReturnType<C[K]>>;
+}
+
 type NormalOrStrict<C extends Contract | StrictContract> = C extends Contract
     ? C
     : C extends StrictContract

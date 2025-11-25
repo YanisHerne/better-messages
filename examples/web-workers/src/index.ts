@@ -3,7 +3,6 @@ import { messages } from "./common";
 const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
 const { onMessage, sendMessage } = messages({
     listen: (listener) => {
-        console.log("Main thread listening")
         const callback = (event: MessageEvent) => {
             listener(event.data);
         }
@@ -11,8 +10,6 @@ const { onMessage, sendMessage } = messages({
         return () => worker.removeEventListener("message", callback);
     },
     send: (data) => {
-        console.log("Main thread sending")
-        console.log(data)
         worker.postMessage(data);
     },
     namespace: "worker",
@@ -36,4 +33,11 @@ addBtn.addEventListener("click", async () => {
 helloBtn.addEventListener("click", async () => {
     const result = await sendMessage("greet", "Arthur Dent");
     console.log(result);
+});
+
+let count = 0;
+onMessage("ping", (msg) => {
+    count++;
+    console.log(msg);
+    return `Main thread received web worker ping for ${count} times`;
 });

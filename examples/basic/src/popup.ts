@@ -1,4 +1,4 @@
-import { sendMessage, customMessages} from "./common";
+import { sendMessage, customMessages } from "./common";
 
 const { sendMessage: sendMessageCustom } = customMessages({
     listen: (listener) => {
@@ -15,7 +15,7 @@ const injectButton = document.getElementById("inject");
 if (!injectButton) throw new Error();
 injectButton.addEventListener("click", async () => {
     console.log("Inject");
-//    void sendMessage("inject");
+    void sendMessage("inject");
     const thing = await sendMessageCustom("greet", "Rory");
     console.log("Thing: " + thing);
 });
