@@ -331,7 +331,7 @@ S extends Contract
                 frameId: number;
             }
         ]
-    ) =>
+    ) => {
         // Since the original contract is not available at runtime, a real
         // object using its keys is impossible to construct. We simply fake the
         // object using a proxy object and type assertions. Once a property is
@@ -339,16 +339,17 @@ S extends Contract
         // the necessary information to construct the message is available at
         // runtime.
         new Proxy({} as S, {
-            // Save space by delegating to the previous overloads. Indexing into the
-            // strict contract vs flattening makes typescript angry, requiring the
-            // type assertion. It is safe, however, since the type pre-assertion is
-            // actually stricter.
             get: <K extends keyof S>(_target: S, tag: K, _receiver: unknown) => {
                 return (...message: Parameters<C[K]>) => {
+                    // Save space by delegating to the previous overloads. Indexing into the
+                    // strict contract vs flattening makes typescript angry, requiring the
+                    // type assertion. It is safe, however, since the type pre-assertion is
+                    // actually stricter.
                     return sendMessage(...args, tag, ...message);
                 };
             },
         });
+    }
 
     return { onMessage, sendMessage, createMessage } as S extends Contract
         ? BetterMessages<S>

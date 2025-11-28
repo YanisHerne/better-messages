@@ -13,10 +13,10 @@ Traditional browser extension messaging with the raw APIs is boilerplate-heavy a
 *   **Asynchronous Support:** Message handlers seamlessly support asynchronous operations (e.g., `async/await`).
 *   **IDE Autocomplete:** Benefit from excellent IDE support, including autocomplete for message names and argument suggestions.
 *   **Organization:** Ensure that each part of your extension has a clearly defined set of listeners, instead of wrangling a bunch of randomly placed functions.
-*   **Efficiency:** A tiny bundle footprint (~1.1KB brotli)
-*   **Universal Adaptability:** A small, ~10-line adapter allows `better-messages` to work with *any* messaging API.
+*   **Efficiency:** A tiny bundle footprint (>1KB brotli)
+*   **Universal Adaptability:** A small, ~10-line adapter allows `better-messages` to work with any messaging API.
 
-## Getting Started
+## Getting Started (Chrome Extension)
 
 ### Install with your favorite package manager:
 
@@ -26,9 +26,9 @@ npm/pnpm/yarn install better-messages
 
 ### Basic Contract:
 
-The core concept when using `better-messages` is the **Contract**, a typescript interface or object type that defines the shape of your messages: what parameters they take and what kind of response they return. This contract is an object type where the keys are the message names, and the values are functions defining the inputs and outputs. The parameters define the data type(s) to be sent, and the return types define the data type(s) of the responses.
+The core concept when using `better-messages` is the **Contract**, a typescript interface or object type that defines all of your messages: what parameters they take and what kind of response they return. This contract is an object type where the keys are the message names, and the values are functions defining the inputs (parameter types) and outputs (return types).
 
-Import `makeMessagse` from `better-messages` and pass your Contract as a type parameter. Do this in a shared file that can be imported by every context that will need to communicate. Export `onMessage` and `sendMessage`, which will be used to listen for and send messages.
+Make a shared file to be imported by every context that will need to communicate. Import `makeMessages` from `better-messages` and pass your Contract as a type parameter. Export `onMessage` and `sendMessage`, which will be used to listen for and send messages.
 
 ```typescript
 // ./common.ts
@@ -44,12 +44,11 @@ export const { onMessage, sendMessage } = makeMessages<{
 This contract has three messages. 
 * "hello" takes in a "name" of type `string`, and returns a `string`.
 * "add" takes in two parameters of type `number` and returns a `number`.
-* "getTheme" takes no parameters and returns a union of the string literals "auto", "light", and "dark".
+* "getTheme" takes no parameters and returns a union of the string literals `"auto"`, `"light"`, and `"dark"`.
 
 #### Listen for messages:
 
-Use `onMessage` to register handlers for your defined messages by passing an object that has is any partial subset of your Contract. TypeScript automatically provides correct argument types and enforces return types, and your IDE will give you autocomplete and hover information. You can also use an alternate syntax wherein only a single listener is instantiated, by passing two parameters, where the first parameter is the name of the message, and the second parameter is the listener callback.
-Then, implement your message handlers in the receiving context:
+Use `onMessage` to register handlers for your defined messages by passing an object where the keys are names of the messages and the values are functions that match your Contract. You can also use an alternate syntax wherein only a single listener is instantiated, by passing two parameters, where the first parameter is the name of the message, and the second parameter is the listener callback. TypeScript automatically provides correct argument types and enforces return types, and your IDE will give you autocomplete and hover information. 
 
 ```typescript
 // ./background.ts
@@ -64,12 +63,12 @@ onMessage({
     },
 });
 
-// This is also valid if you only want to implement this message here
+// Partial subsets of the Contract are allowed too
 onMessage({
     hello: (name) => `Hello, ${name}!`,
 });
 
-// This syntax is also valid
+// This two-parameter syntax is also valid when listening to only one message
 onMessage("hello", (name) => `Hello, ${name}!`);
 
 // Type-safety in action:
@@ -83,7 +82,10 @@ onMessage({
 onMessage({
     getTheme: () => "day",
 //  ^^^^^^^^
-// error: Type '() => "day"' is not assignable to type '(args_0: MessageSender) => "auto" | "light" | "dark" | Promise<"auto" | "light" | "dark">'. Type '"day"' is not assignable to type '"auto" | "light" | "dark" | Promise<"auto" | "light" | "dark">'.});
+// error: Type '() => "day"' is not assignable to type '(args_0: MessageSender) => "auto" | 
+//            "light" | "dark" | Promise<"auto" | "light" | "dark">'.
+//        Type '"day"' is not assignable to type '"auto" | "light" | "dark" |
+//            Promise<"auto" | "light" | "dark">'.});
 });
 ```
 
@@ -140,21 +142,21 @@ export const { onMessage, createMessage, sendMessage } = makeMessages<{
 }>();
 ```
 > [!Note]
-> The method names in each category must be unique across the entire Strict Contract. `makeMessages` will create a typescript error if this restriction is violated. Thus, the following Strict Contract will create a typescript error.
+> The method names in each category must be unique across the entire Strict Contract. `makeMessages` will create a typescript error if this restriction is violated, such as in the following example, where both the "background" and "content" categories have an "add" method.
 > ```typescript
 > const { onMessage, sendMessage } = makeMessages<{
 >     background: {
 >         add: (x: number, y: number) => number
 >     }
 >     content: {
->         add: (x: number, y: number) => number
+>         add: (x: string, y: string) => string 
 >     }
 > }>();
 > ```
 
 #### Listening for Messages
 
-Use `onMessage` to register handlers for your defined messages. However, when using Strict Messages, you must provide a type argument that is a top-level key from your Strict Contract. Adding an erroneous listener when the contract doesn't call for one under the chosen category in the Strict Contract, or neglecting to add a listener that was specified in the Strict Contract, will create a typescript error.
+Use `onMessage` to register handlers for your defined messages. However, when using Strict Messages, you must provide a type argument that is a category (top-level key) from your Strict Contract. Adding a listener that is not specified under the chosen category, or neglecting to add a listener that *was* specified under the chosen category, will result in a typescript error.
 
 ```typescript
 // background.ts
@@ -218,11 +220,11 @@ console.log(sum); // 8
 
 ## Custom Adapters with `makeCustom`
 
-The `makeCustom` function allows you to create your own messaging instance by providing a simple adapter for any messaging API. This makes `better-messages` truly universal for any JavaScript context.
+The `makeCustom` function allows you to create your own messaging instance by providing a simple adapter for any messaging API.
 
 The adapter configuration object requires three keys:
 *   `listen`: A function that takes a `listener` callback and attaches it to the underlying messaging mechanism. It should return a cleanup function to remove the listener.
-*   `send`: A function that takes data and sends it via the underlying messaging mechanism.
+*   `send`: A function that takes one parameter, `data`, of type `any`, and sends it via the underlying messaging mechanism.
 *   `namespace`: A unique string to prevent message collisions if multiple `makeCustom` instances are using the same underlying messaging channel.
 
 ### `makeCustom` Overloads
@@ -395,6 +397,6 @@ onMessage("ping", (msg) => {
 
 ## License
 
-This project is licensed under the MIT license. see the [license](license) file for details.
+This project is licensed under the MIT license. see the [license](LICENSE) file for details.
 
 ---

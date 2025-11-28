@@ -9,7 +9,7 @@
     },
     "keywords": [],
     "author": "Yanis Herne",
-    "license": "ISC",
+    "license": "MIT",
     "packageManager": "pnpm@10.8.0",
     "dependencies": {
         "better-messages": "workspace:*"
