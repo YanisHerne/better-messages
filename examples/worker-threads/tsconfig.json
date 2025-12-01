@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "target": "es2022",
+        "module": "es2022",
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "inlineSources" : true,
+        "allowSyntheticDefaultImports": true,
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "isolatedModules": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "lib": [ "es2022" ],
+        "noUncheckedIndexedAccess": true,
+        "types": [ "node" ],
+        "outDir": "./dist",
+    },
+    "include": [ "src/**/*" ],
+    "exclude": [ "node_modules" ],
+}

@@ -390,7 +390,7 @@ type AllInternalCustom<C extends Contract> = {
     [K in keyof C]: InternalCustom<C, K>;
 }[keyof C];
 
-type CustomArgs = {
+export type CustomConfig = {
     listen: (listener: (data: any) => Promise<any>) => () => void;
     send: (data: any) => void;
     namespace: string;
@@ -441,28 +441,6 @@ type CustomStrictMessages<S extends StrictContract> = {
     };
 };
 
-type CustomOption<C extends Contract, O extends any = undefined> = O extends undefined
-    ? {}
-    : {
-    sendMessage<K extends keyof C>(
-        this: void,
-        option: O,
-        tag: K,
-        ...message: Parameters<C[K]>
-    ): Promise<ReturnType<C[K]>>;
-}
-
-type CustomStrictOption<S extends StrictContract, O extends any = undefined> = O extends undefined
-    ? {}
-    : {
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
-        this: void,
-        option: O,
-        tag: K,
-        ...message: Parameters<C[K]>
-    ): Promise<ReturnType<C[K]>>;
-}
-
 type NormalOrStrict<C extends Contract | StrictContract> = C extends Contract
     ? C
     : C extends StrictContract
@@ -479,7 +457,7 @@ export const makeCustomInternal = <C extends Contract | StrictContract>({
     listen,
     send,
     namespace,
-}: CustomArgs): C extends Contract
+}: CustomConfig): C extends Contract
     ? CustomMessages<C>
     : C extends StrictContract
         ? CustomStrictMessages<C>
@@ -513,7 +491,7 @@ export const makeCustomInternal = <C extends Contract | StrictContract>({
                 };
                 handler = handlers[message.tag];
             }
-            if (!handler) throw new Error("Unrecognized message");
+            if (!handler) return;
             const result = handler(...message.msg);
             if (result instanceof Promise) {
                 result.then((data) => {
@@ -575,24 +553,24 @@ export const makeCustomInternal = <C extends Contract | StrictContract>({
 };
 
 export function makeCustom<C extends Record<any, (...args: any[]) => any>>(
-    config: CustomArgs,
+    config: CustomConfig,
 ): CustomMessages<C>;
 export function makeCustom<C extends Record<any, (...args: any[]) => any>>(): (
-    config: CustomArgs,
+    config: CustomConfig,
 ) => CustomMessages<C>;
 export function makeCustom<S extends StrictContract>(
-    config: CustomArgs,
+    config: CustomConfig,
     ..._validStrictContract: UniqueKeys<S>
 ): CustomStrictMessages<S>;
 export function makeCustom<S extends StrictContract>(
     ..._validStrictContract: UniqueKeys<S>
-): (config: CustomArgs) => CustomStrictMessages<S>;
+): (config: CustomConfig) => CustomStrictMessages<S>;
 export function makeCustom<C extends Contract | StrictContract>(
     ...args: C extends Contract
-        ? [config: CustomArgs] | []
+        ? [config: CustomConfig] | []
         : C extends StrictContract
           ? [
-            config: CustomArgs,
+            config: CustomConfig,
             ..._validStrictContract: UniqueKeys<C>
           ] | [
             ..._validStrictContract: UniqueKeys<C>
@@ -605,7 +583,7 @@ export function makeCustom<C extends Contract | StrictContract>(
             ? CustomStrictMessages<C>
             : never)
     | ((
-          config: CustomArgs,
+          config: CustomConfig,
       ) => C extends Contract
           ? CustomMessages<C>
           : C extends StrictContract
@@ -615,7 +593,7 @@ export function makeCustom<C extends Contract | StrictContract>(
         return makeCustomInternal<C>(args[0]);
     } else {
         // This is the function returned by the second overload
-        return (config: CustomArgs) => {
+        return (config: CustomConfig) => {
             return makeCustomInternal<C>(config);
         };
     }

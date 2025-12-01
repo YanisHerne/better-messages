@@ -231,18 +231,18 @@ The adapter configuration object requires three keys:
 
 `makeCustom` is highly flexible and offers four distinct overloads to suit your needs. Here are the simplified signatures:
 
-1.  **Flat Contract with Immediate Config:**
+1.  **Flat Contract with immediate config:**
     `makeCustom<Contract>(config)`
     (Used in Example 1: Injected Scripts)
 
-2.  **Flat Contract with Deferred Config:**
+2.  **Flat Contract with deferred config:**
     `makeCustom<Contract>()` which returns `(config) => { onMessage, sendMessage }`
     (Used in Example 2: Web Workers)
 
-3.  **Strict Contract with Immediate Config:**
+3.  **Strict Contract with immediate config:**
     `makeCustom<StrictContract>(config)`
 
-4.  **Strict Contract, Deferred Config:**
+4.  **Strict Contract, deferred config:**
     `makeCustom<StrictContract>()` which returns `(config) => { onMessage, createMessage, sendMessage }`
 
 This allows you to choose between flat or strictly categorized contracts, and whether to provide the adapter configuration immediately (for symmetric protocols) or defer it (for assymetric protocols where the adapter must be different in different contexts).

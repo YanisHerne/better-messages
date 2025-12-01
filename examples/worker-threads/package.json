@@ -1,0 +1,28 @@
+{
+    "name": "better-messages-example-worker-threads",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "rollup -c rollup.config.js",
+        "start": "node dist/index.js",
+        "dev": "tsx src/index.ts"
+    },
+    "keywords": [],
+    "author": "Yanis Herne",
+    "license": "MIT",
+    "packageManager": "pnpm@10.8.0",
+    "dependencies": {
+        "better-messages": "workspace:*"
+    },
+    "devDependencies": {
+        "@rollup/plugin-babel": "^6.1.0",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rollup/plugin-typescript": "^12.3.0",
+        "@types/node": "^24.10.1",
+        "rollup": "^4.52.5",
+        "tsx": "^4.20.6",
+        "typescript": "^5.9.3"
+    }
+}
