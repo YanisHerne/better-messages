@@ -3,7 +3,7 @@ import path from "path";
 
 import { messages } from "./common";
 
-const workerPath = path.resolve("dist/worker.js"); 
+const workerPath = path.resolve("dist/worker.js");
 const worker = new Worker(workerPath);
 
 const { onMessage, sendMessage } = messages({
@@ -25,7 +25,7 @@ console.log("Main thread started.");
 const numberToCalculate = 10;
 try {
     for (let i = 0; i < numberToCalculate; i++) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log(`Calculating Fibonacci(${i}) in a worker thread...`);
         sendMessage("fibonacci", i).then((result) => {
             console.log(`Fibonacci(${i}) result: ${result}`);

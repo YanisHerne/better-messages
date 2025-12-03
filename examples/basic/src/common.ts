@@ -1,12 +1,12 @@
-import { makeMessages, makeCustom} from "better-messages";
+import { makeMessages, makeCustom } from "better-messages";
 
 export const { onMessage, sendMessage } = makeMessages<{
-    inject: () => void
-    hello: (x: string) => string
-    divide: (x: number, y: number) => number
-    add: (x: number, y: number) => number
-    concat: (x: string, y: string) => string
-    length: (x: string) => number
+    inject: () => void;
+    hello: (x: string) => string;
+    divide: (x: number, y: number) => number;
+    add: (x: number, y: number) => number;
+    concat: (x: string, y: string) => string;
+    length: (x: string) => number;
 }>();
 
 //export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustom<{
@@ -25,21 +25,30 @@ export const { onMessage, sendMessage } = makeMessages<{
 //});
 
 export const customMessages = makeCustom<{
-    greet: (name: string) => string
+    greet: (name: string) => string;
 }>();
 
 export const { sendMessage: sendInjected, onMessage: listenInjected } = makeCustom<{
-    greet: (name: string) => string
+    greet: (name: string) => string;
 }>({
     listen: (listener) => {
-        const callback = (event: CustomEvent<{detail: any}>) => {
-            listener(event.detail)
-        }
-        document.body.addEventListener("better-messages-injected", callback as (event: Event) => void);
-        return () => document.body.removeEventListener("better-messages-injected", callback as (event: Event) => void);
+        const callback = (event: CustomEvent<{ detail: any }>) => {
+            listener(event.detail);
+        };
+        document.body.addEventListener(
+            "better-messages-injected",
+            callback as (event: Event) => void,
+        );
+        return () =>
+            document.body.removeEventListener(
+                "better-messages-injected",
+                callback as (event: Event) => void,
+            );
     },
     send: (data: any) => {
-        document.body.dispatchEvent(new CustomEvent<{ detail: any}>("better-messages-injected", { detail: data }));
+        document.body.dispatchEvent(
+            new CustomEvent<{ detail: any }>("better-messages-injected", { detail: data }),
+        );
     },
     namespace: "injected",
 });

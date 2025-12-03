@@ -3,12 +3,12 @@ import { onMessage, sendMessage, onMessageCustom, sendMessageCustom } from "./co
 onMessage<"background">({
     inject: async () => {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        const tabId = tab!.id
+        const tabId = tab!.id;
         if (!tabId) return;
         await chrome.scripting.executeScript({
             target: { tabId: tabId },
-            files: ['./content.js']
-        }); 
+            files: ["./content.js"],
+        });
         await sendMessage(tabId, "hello", "Hello from background");
 
         let count = 0;
@@ -39,5 +39,5 @@ onMessageCustom<"background">({
         const response = await sendMessageCustom("respond", "How is your day going?");
         console.log("Response: " + response);
         return `Hello, ${name}!`;
-    }
+    },
 });

@@ -14,16 +14,12 @@
         "forceConsistentCasingInFileNames": true,
         "lib": ["DOM", "DOM.Iterable", "es2022"],
         "noUncheckedIndexedAccess": true,
-        "types": ["chrome"],
-        "outDir": "./dist",
+        "types": [ "chrome", "node" ],
+        "outDir": "./dist"
     },
     "include": [
         "src/**/*",
-        "example/**/*",
-        "strict/**/*",
+        "examples/**/*"
     ],
-    "exclude": [
-        "node_modules",
-        "scripts/*"
-    ]
+    "exclude": [ "node_modules" ]
 }

@@ -1,7 +1,7 @@
-"use strict"
+"use strict";
 
 import { babel } from "@rollup/plugin-babel";
-import typescript from '@rollup/plugin-typescript'
+import typescript from "@rollup/plugin-typescript";
 import nodeResolve from "@rollup/plugin-node-resolve";
 
 export default [
@@ -18,11 +18,9 @@ export default [
                 sourceMap: true,
             }),
             babel({
-                babelHelpers: 'bundled',
-                extensions: ['.ts' ],
-                presets: [
-                    ["@babel/preset-typescript"],
-                ],
+                babelHelpers: "bundled",
+                extensions: [".ts"],
+                presets: [["@babel/preset-typescript"]],
                 sourceMaps: true,
             }),
         ],
@@ -40,13 +38,11 @@ export default [
                 sourceMap: true,
             }),
             babel({
-                babelHelpers: 'bundled',
-                extensions: ['.ts' ],
-                presets: [
-                    ["@babel/preset-typescript"],
-                ],
+                babelHelpers: "bundled",
+                extensions: [".ts"],
+                presets: [["@babel/preset-typescript"]],
                 sourceMaps: true,
             }),
         ],
     },
-]
+];

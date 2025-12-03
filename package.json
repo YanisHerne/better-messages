@@ -20,11 +20,16 @@
     "license": "MIT",
     "scripts": {
         "build": "tsup",
-        "lint": "eslint"
+        "lint": "eslint",
+        "format": "pnpm format:c",
+        "format:w": "prettier -w src examples",
+        "format:c": "prettier -c src examples",
+        "test": "vitest"
     },
     "packageManager": "pnpm@10.8.0",
     "devDependencies": {
         "@types/chrome": "^0.1.24",
+        "@types/node": "^24.10.1",
         "@typescript-eslint/eslint-plugin": "^8.46.3",
         "@typescript-eslint/parser": "^8.46.3",
         "eslint": "^9.39.1",
@@ -33,6 +38,7 @@
         "prettier": "^3.6.2",
         "tsdown": "^0.15.9",
         "tsup": "^8.5.0",
-        "vite": "^7.1.12"
+        "vite": "^7.1.12",
+        "vitest": "^4.0.14"
     }
 }

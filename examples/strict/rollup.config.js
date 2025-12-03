@@ -1,9 +1,9 @@
-"use strict"
+"use strict";
 
-import fs from "fs"
+import fs from "fs";
 
 import { babel } from "@rollup/plugin-babel";
-import typescript from '@rollup/plugin-typescript'
+import typescript from "@rollup/plugin-typescript";
 import nodeResolve from "@rollup/plugin-node-resolve";
 
 export default [
@@ -20,12 +20,10 @@ export default [
                 sourceMap: true,
             }),
             babel({
-                babelHelpers: 'bundled',
-                presets: ['solid'],
-                extensions: ['.ts', '.tsx'],
-                presets: [
-                    ["@babel/preset-typescript"],
-                ],
+                babelHelpers: "bundled",
+                presets: ["solid"],
+                extensions: [".ts", ".tsx"],
+                presets: [["@babel/preset-typescript"]],
                 sourceMaps: true,
             }),
         ],
@@ -43,12 +41,10 @@ export default [
                 sourceMap: true,
             }),
             babel({
-                babelHelpers: 'bundled',
-                presets: ['solid'],
-                extensions: ['.ts', '.tsx'],
-                presets: [
-                    ["@babel/preset-typescript"],
-                ],
+                babelHelpers: "bundled",
+                presets: ["solid"],
+                extensions: [".ts", ".tsx"],
+                presets: [["@babel/preset-typescript"]],
                 sourceMaps: true,
             }),
         ],
@@ -66,17 +62,17 @@ export default [
                 sourceMap: true,
             }),
             babel({
-                babelHelpers: 'bundled',
-                presets: ['solid'],
-                extensions: ['.ts', '.tsx'],
-                presets: [
-                    ["@babel/preset-typescript"],
-                ],
+                babelHelpers: "bundled",
+                presets: ["solid"],
+                extensions: [".ts", ".tsx"],
+                presets: [["@babel/preset-typescript"]],
                 sourceMaps: true,
             }),
-            {writeBundle() {
-                fs.cpSync("./static", "./dist", { recursive: true });
-            }},
+            {
+                writeBundle() {
+                    fs.cpSync("./static", "./dist", { recursive: true });
+                },
+            },
         ],
     },
-]
+];

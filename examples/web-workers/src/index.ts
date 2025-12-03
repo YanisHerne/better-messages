@@ -5,7 +5,7 @@ const { onMessage, sendMessage } = messages({
     listen: (listener) => {
         const callback = (event: MessageEvent) => {
             listener(event.data);
-        }
+        };
         worker.addEventListener("message", callback);
         return () => worker.removeEventListener("message", callback);
     },
@@ -21,12 +21,12 @@ const helloBtn = document.getElementById("hello");
 if (!divideBtn || !addBtn || !helloBtn) throw new Error("Something went wrong");
 
 divideBtn.addEventListener("click", async () => {
-    const result = await sendMessage("divide", 10 , 2);
+    const result = await sendMessage("divide", 10, 2);
     console.log("10 divided by 2 makes " + result);
 });
 
 addBtn.addEventListener("click", async () => {
-    const result = await sendMessage("add", 10 , 2);
+    const result = await sendMessage("add", 10, 2);
     console.log("10 added with 2 makes " + result);
 });
 

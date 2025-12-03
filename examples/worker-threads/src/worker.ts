@@ -1,5 +1,5 @@
-import { parentPort, workerData } from 'worker_threads';
-import { messages } from './common';
+import { parentPort, workerData } from "worker_threads";
+import { messages } from "./common";
 
 const listeners = new Set<(...args: any) => any>();
 
@@ -20,10 +20,10 @@ const { onMessage, sendMessage } = messages({
 void sendMessage("status", "hello");
 
 function calculateFibonacci(n: number): number {
-  if (n <= 1) {
-    return n;
-  }
-  return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
+    if (n <= 1) {
+        return n;
+    }
+    return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
 }
 
 onMessage("fibonacci", (n) => {

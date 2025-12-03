@@ -11,7 +11,7 @@ const background = createMessage<"background">();
 //            ╰────────╯
 // Note that only the fields that were specified in the Contract under the key
 // `background` are showing up.
-// 
+//
 // Hover info is given:
 // background.add
 //             ╭───────────────────────────────────────────────────────────╮
@@ -26,7 +26,7 @@ const background = createMessage<"background">();
 //
 // background.inject(true);
 //                   ^^^^
-// error: Expected 0 arguments, but got 1. 
+// error: Expected 0 arguments, but got 1.
 
 const injectButton = document.getElementById("inject");
 if (!injectButton) throw new Error();
@@ -34,7 +34,7 @@ injectButton.addEventListener("click", () => {
     void background.inject();
 });
 
-const divideButton = document.getElementById("input-1")
+const divideButton = document.getElementById("input-1");
 if (!divideButton) throw new Error();
 divideButton.addEventListener("click", (async () => {
     const num = await background.divide(10, 2);
@@ -42,7 +42,7 @@ divideButton.addEventListener("click", (async () => {
     console.log("10 divided by 2 makes " + num);
 }) as () => void);
 
-const addButton = document.getElementById("input-2")
+const addButton = document.getElementById("input-2");
 if (!addButton) throw new Error();
 addButton.addEventListener("click", (async () => {
     const num = await background.add(10, 2);
@@ -50,13 +50,13 @@ addButton.addEventListener("click", (async () => {
     console.log("10 plus 2 makes " + num);
 }) as () => void);
 
-const helloButton = document.getElementById("hello")
+const helloButton = document.getElementById("hello");
 if (!helloButton) throw new Error();
 helloButton.addEventListener("click", (async () => {
     const greeting = await sendMessageCustom("greet", "Arthur Dent");
-    console.log(greeting)
+    console.log(greeting);
 }) as () => void);
 
 onMessageCustom<"popup">({
-    respond: (query) => `I'm not sure I understand your query of "${query}".`
+    respond: (query) => `I'm not sure I understand your query of "${query}".`,
 });

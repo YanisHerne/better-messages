@@ -109,7 +109,7 @@ type Flatten<T extends StrictContract> =
         ? FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>>
         : never;
 
-interface BetterMessages<C extends Contract> {
+export interface BetterMessages<C extends Contract> {
     onMessage<K extends keyof C>(
         this: void,
         tag: K,
@@ -148,7 +148,7 @@ interface BetterMessages<C extends Contract> {
     ): Promise<Output<C, K>>;
 }
 
-interface StrictMessages<S extends StrictContract> {
+export interface StrictMessages<S extends StrictContract> {
     onMessage<G extends keyof S, C extends S[G] = S[G]>(
         this: void,
         handlers: {
@@ -216,35 +216,22 @@ interface StrictMessages<S extends StrictContract> {
  * `makeMessages` returns an object containing two functions: `onMessage` and `sendMessage`, both of
  * which are configured with your defined `Contract`.
  */
-export function makeMessages <C extends Record<any, (...args: any[]) => any>>(): BetterMessages<C>
-export function makeMessages <C extends StrictContract>(..._args: UniqueKeys<C>): StrictMessages<C>
-export function makeMessages <S extends Contract | StrictContract>(..._args: S extends Contract
-    ? [] 
-    : S extends StrictContract
-        ? UniqueKeys<S>
-        : never
-): (
-S extends Contract
-    ? BetterMessages<S>
-    : S extends StrictContract
-        ? StrictMessages<S>
-        : never
-) {
-    type C = NormalOrStrict<S>
+export function makeMessages<C extends Record<any, (...args: any[]) => any>>(): BetterMessages<C>;
+export function makeMessages<C extends StrictContract>(..._args: UniqueKeys<C>): StrictMessages<C>;
+export function makeMessages<S extends Contract | StrictContract>(
+    ..._args: S extends Contract ? [] : S extends StrictContract ? UniqueKeys<S> : never
+): S extends Contract ? BetterMessages<S> : S extends StrictContract ? StrictMessages<S> : never {
+    type C = NormalOrStrict<S>;
     const onMessage = <K extends keyof C>(
         ...args: S extends Contract
-            ? [
-                handlers: { [K in keyof C]?: Handler<C, K> }
-            ] | [
-                tag: K, handler: Handler<C, K>
-            ]
+            ? [handlers: { [K in keyof C]?: Handler<C, K> }] | [tag: K, handler: Handler<C, K>]
             : S extends StrictContract
-                ? [
+              ? [
                     handlers: {
-                        [K in keyof S[keyof S]]: Handler<S[keyof S], K>
+                        [K in keyof S[keyof S]]: Handler<S[keyof S], K>;
                     },
                 ]
-                : never
+              : never
     ): void => {
         chrome.runtime.onMessage.addListener(
             (
@@ -322,15 +309,16 @@ S extends Contract
         }
     };
 
-    const createMessage = <G extends keyof C, S extends C[G] extends Contract ? C[G] : never>(...args:
-        | []
-        | [ tabId: number ]
-        | [
-            tabAndFrameId: {
-                tabId: number;
-                frameId: number;
-            }
-        ]
+    const createMessage = <G extends keyof C, S extends C[G] extends Contract ? C[G] : never>(
+        ...args:
+            | []
+            | [tabId: number]
+            | [
+                  tabAndFrameId: {
+                      tabId: number;
+                      frameId: number;
+                  },
+              ]
     ) => {
         // Since the original contract is not available at runtime, a real
         // object using its keys is impossible to construct. We simply fake the
@@ -349,14 +337,14 @@ S extends Contract
                 };
             },
         });
-    }
+    };
 
     return { onMessage, sendMessage, createMessage } as S extends Contract
         ? BetterMessages<S>
         : S extends StrictContract
-            ? StrictMessages<S>
-            : never;
-};
+          ? StrictMessages<S>
+          : never;
+}
 
 /**
  * The type in which the data is wrapped so that it can be reasoned about
@@ -396,7 +384,7 @@ export type CustomConfig = {
     namespace: string;
 };
 
-interface CustomMessages<C extends Contract> {
+export interface CustomMessages<C extends Contract> {
     onMessage<K extends keyof C>(
         this: void,
         tag: K,
@@ -418,7 +406,7 @@ interface CustomMessages<C extends Contract> {
     ): Promise<ReturnType<C[K]>>;
 }
 
-type CustomStrictMessages<S extends StrictContract> = {
+export type CustomStrictMessages<S extends StrictContract> = {
     onMessage<G extends keyof S, C extends S[G] = S[G]>(
         this: void,
         handlers: {
@@ -444,13 +432,13 @@ type CustomStrictMessages<S extends StrictContract> = {
 type NormalOrStrict<C extends Contract | StrictContract> = C extends Contract
     ? C
     : C extends StrictContract
-        ? C[keyof C]
-        : never;
+      ? C[keyof C]
+      : never;
 
 type CustomHandler<
     C extends Contract | StrictContract,
     K extends keyof C,
-    S extends NormalOrStrict<C> = NormalOrStrict<C>
+    S extends NormalOrStrict<C> = NormalOrStrict<C>,
 > = (...args: Parameters<S[K]>) => ReturnType<S[K]> | Promise<ReturnType<S[K]>>;
 
 export const makeCustomInternal = <C extends Contract | StrictContract>({
@@ -460,20 +448,17 @@ export const makeCustomInternal = <C extends Contract | StrictContract>({
 }: CustomConfig): C extends Contract
     ? CustomMessages<C>
     : C extends StrictContract
-        ? CustomStrictMessages<C>
-        : never => {
+      ? CustomStrictMessages<C>
+      : never => {
     const onMessage = <K extends keyof C>(
         ...args: C extends Contract
-            ? [ 
-                handlers: { [K in keyof C]?: CustomHandler<C, K> }
-            ] | [
-                tag: K,
-                handler: CustomHandler<C, K>
-            ]
+            ?
+                  | [handlers: { [K in keyof C]?: CustomHandler<C, K> }]
+                  | [tag: K, handler: CustomHandler<C, K>]
             : C extends StrictContract
               ? [
                     handlers: {
-                        [K in keyof C[keyof C]]: CustomHandler<C[keyof C], K>
+                        [K in keyof C[keyof C]]: CustomHandler<C[keyof C], K>;
                     },
                 ]
               : never
@@ -569,12 +554,9 @@ export function makeCustom<C extends Contract | StrictContract>(
     ...args: C extends Contract
         ? [config: CustomConfig] | []
         : C extends StrictContract
-          ? [
-            config: CustomConfig,
-            ..._validStrictContract: UniqueKeys<C>
-          ] | [
-            ..._validStrictContract: UniqueKeys<C>
-          ]
+          ?
+                | [config: CustomConfig, ..._validStrictContract: UniqueKeys<C>]
+                | [..._validStrictContract: UniqueKeys<C>]
           : never
 ):
     | (C extends Contract

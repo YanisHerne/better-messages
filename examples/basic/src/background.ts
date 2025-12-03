@@ -3,12 +3,12 @@ import { onMessage, sendMessage, customMessages } from "./common";
 onMessage({
     inject: async () => {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        const tabId = tab!.id
+        const tabId = tab!.id;
         if (!tabId) return;
         await chrome.scripting.executeScript({
             target: { tabId: tabId },
-            files: ['./content.js']
-        }); 
+            files: ["./content.js"],
+        });
         await sendMessage(tabId, "hello", "Hello from background to content");
 
         let count = 0;
@@ -16,7 +16,11 @@ onMessage({
             count++;
             if (!tabId) return;
             try {
-                await sendMessage(tabId, "hello", `Hello for ${count} times from background to content`);
+                await sendMessage(
+                    tabId,
+                    "hello",
+                    `Hello for ${count} times from background to content`,
+                );
             } catch {}
         }, 1000);
     },

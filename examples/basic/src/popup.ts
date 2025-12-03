@@ -20,18 +20,18 @@ injectButton.addEventListener("click", async () => {
     console.log("Thing: " + thing);
 });
 
-const divideButton = document.getElementById("input-1")
+const divideButton = document.getElementById("input-1");
 if (!divideButton) throw new Error();
 divideButton.addEventListener("click", (async () => {
-    const num = await sendMessage("divide", 10, 2)
+    const num = await sendMessage("divide", 10, 2);
     // typeof num === "number"
     console.log("10 divided by 2 makes " + num);
 }) as () => void);
 
-const addButton = document.getElementById("input-2")
+const addButton = document.getElementById("input-2");
 if (!addButton) throw new Error();
 addButton.addEventListener("click", (async () => {
-    const num = await sendMessage("add", 10, 2)
+    const num = await sendMessage("add", 10, 2);
     // typeof num === "number"
     console.log("10 plus 2 makes " + num);
 }) as () => void);
