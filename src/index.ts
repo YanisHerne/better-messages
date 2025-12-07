@@ -87,7 +87,11 @@ type UniqueKeys<T extends StrictContract> = keyof T[keyof T] extends never
             "Error: Names of methods (sub-keys) in a StrictContract must be unique across the entire contract",
         ];
 
-type Uniqueify<T extends StrictContract> = keyof T[keyof T] extends never ? T : never;
+type Uniqueify<T extends StrictContract> = keyof T[keyof T] extends never
+    ? T
+    : HasOnlyOneProperty<T> extends true
+      ? T
+      : never;
 
 type ExtractIndividualYProps<T extends StrictContract> = {
     [X in keyof T]: {
@@ -381,7 +385,7 @@ type AllInternalCustom<C extends Contract> = {
 export type CustomConfig = {
     listen: (listener: (data: any) => Promise<any>) => () => void;
     send: (data: any) => void;
-    namespace: string;
+    namespace?: string;
 };
 
 export interface CustomMessages<C extends Contract> {
@@ -407,25 +411,25 @@ export interface CustomMessages<C extends Contract> {
 }
 
 export type CustomStrictMessages<S extends StrictContract> = {
-    onMessage<G extends keyof S, C extends S[G] = S[G]>(
+    onMessage<G extends keyof S>(
         this: void,
         handlers: {
-            [K in keyof C]: (
-                ...args: Parameters<C[K]>
-            ) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>;
+            [K in keyof S[G]]: (
+                ...args: Parameters<S[G][K]>
+            ) => ReturnType<S[G][K]> | Promise<ReturnType<S[G][K]>>;
         },
     ): void;
 
-    sendMessage<C extends Flatten<Uniqueify<S>>, K extends keyof C>(
+    sendMessage<K extends keyof Flatten<Uniqueify<S>>>(
         this: void,
         tag: K,
-        ...message: Parameters<C[K]>
-    ): Promise<ReturnType<C[K]>>;
+        ...message: Parameters<Flatten<Uniqueify<S>>[K]>
+    ): Promise<ReturnType<Flatten<Uniqueify<S>>[K]>>;
 
-    createMessage<G extends keyof S, C extends S[G] = S[G]>(
+    createMessage<G extends keyof S>(
         this: void,
     ): {
-        [K in keyof C]: (...message: Parameters<C[K]>) => Promise<ReturnType<C[K]>>;
+        [K in keyof S[G]]: (...message: Parameters<S[G][K]>) => Promise<ReturnType<S[G][K]>>;
     };
 };
 
@@ -441,15 +445,16 @@ type CustomHandler<
     S extends NormalOrStrict<C> = NormalOrStrict<C>,
 > = (...args: Parameters<S[K]>) => ReturnType<S[K]> | Promise<ReturnType<S[K]>>;
 
-export const makeCustomInternal = <C extends Contract | StrictContract>({
+const makeCustomInternal = <C extends Contract | StrictContract>({
     listen,
     send,
-    namespace,
+    namespace: maybeNamespace,
 }: CustomConfig): C extends Contract
     ? CustomMessages<C>
     : C extends StrictContract
       ? CustomStrictMessages<C>
       : never => {
+    const namespace = maybeNamespace ?? "default";
     const onMessage = <K extends keyof C>(
         ...args: C extends Contract
             ?
