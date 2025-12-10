@@ -1,6 +1,6 @@
-import { makeMessages, makeCustom } from "better-messages";
+import { makeChromeMessages, makeCustom } from "better-messages";
 
-export const { onMessage, createMessage, sendMessage } = makeMessages<{
+export const { onMessage, createMessage, sendMessage } = makeChromeMessages<{
     background: {
         inject: () => void;
         divide: (x: number, y: number) => number;
@@ -25,8 +25,7 @@ export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = ma
         chrome.runtime.onMessage.addListener(listener);
         return () => chrome.runtime.onMessage.removeListener(listener);
     },
-    send: (data: any) => {
-        chrome.runtime.sendMessage(data);
+    send: (data) => {
+        void chrome.runtime.sendMessage(data);
     },
-    namespace: "custom",
 });

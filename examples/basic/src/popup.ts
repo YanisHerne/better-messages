@@ -5,36 +5,42 @@ const { sendMessage: sendMessageCustom } = customMessages({
         chrome.runtime.onMessage.addListener(listener);
         return () => chrome.runtime.onMessage.removeListener(listener);
     },
-    send: (data: any) => {
-        chrome.runtime.sendMessage(data);
+    send: (data) => {
+        void chrome.runtime.sendMessage(data);
     },
     namespace: "custom",
 });
 
 const injectButton = document.getElementById("inject");
 if (!injectButton) throw new Error();
-injectButton.addEventListener("click", async () => {
-    console.log("Inject");
-    void sendMessage("inject");
-    const thing = await sendMessageCustom("greet", "Rory");
-    console.log("Thing: " + thing);
+injectButton.addEventListener("click", () => {
+    void (async () => {
+        console.log("Inject");
+        void sendMessage("inject");
+        const thing = await sendMessageCustom("greet", "Rory");
+        console.log("Thing: " + thing);
+    })();
 });
 
 const divideButton = document.getElementById("input-1");
 if (!divideButton) throw new Error();
-divideButton.addEventListener("click", (async () => {
-    const num = await sendMessage("divide", 10, 2);
-    // typeof num === "number"
-    console.log("10 divided by 2 makes " + num);
-}) as () => void);
+divideButton.addEventListener("click", () => {
+    void (async () => {
+        const num = await sendMessage("divide", 10, 2);
+        // typeof num === "number"
+        console.log("10 divided by 2 makes " + num);
+    })();
+});
 
 const addButton = document.getElementById("input-2");
 if (!addButton) throw new Error();
-addButton.addEventListener("click", (async () => {
-    const num = await sendMessage("add", 10, 2);
-    // typeof num === "number"
-    console.log("10 plus 2 makes " + num);
-}) as () => void);
+addButton.addEventListener("click", () => {
+    void (async () => {
+        const num = await sendMessage("add", 10, 2);
+        // typeof num === "number"
+        console.log("10 plus 2 makes " + num);
+    })();
+});
 
 // Autocomplete works:
 // sendMessage("|

@@ -6,7 +6,6 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
     {
-        files: ["**/*.{js,jsx,ts,tsx}"],
         ignores: [
             "**/node_modules/*",
             "**/dist/*",
@@ -16,6 +15,9 @@ export default [
             "**/*.config.{js,ts,mjs}",
             ".prettierrc",
         ],
+    },
+    {
+        files: ["**/*.{js,jsx,ts,tsx}"],
         languageOptions: {
             parser: typescriptParser,
             parserOptions: {

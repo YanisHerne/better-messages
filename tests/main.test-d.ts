@@ -139,7 +139,7 @@ test("Custom - Strict Contract - Deferred Config", async () => {
     expect(sum).toBe(12);
 });
 
-test("Custom - Strict Contract - Invalid Contract", async () => {
+test("Custom - Strict Contract - Invalid Contract", () => {
     const events = new EventEmitter();
     type MyContract = {
         foo: {
@@ -149,7 +149,8 @@ test("Custom - Strict Contract - Invalid Contract", async () => {
             greet: (name: string) => string;
         };
     };
-    // @ts-expect-error
+    // @ts-expect-error Repeated "greet" sub-key correctly results in typescript error
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const messages = makeCustom<MyContract>({
         listen: (listener) => {
             events.on("message", listener);

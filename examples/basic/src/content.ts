@@ -1,4 +1,4 @@
-import { onMessage, sendInjected, listenInjected } from "./common";
+import { onMessage, listenInjected, sendInjected } from "./common";
 
 let count = 0;
 onMessage({

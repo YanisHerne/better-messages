@@ -1,6 +1,7 @@
-import { parentPort, workerData } from "worker_threads";
+import { parentPort } from "worker_threads";
 import { messages } from "./common";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const listeners = new Set<(...args: any) => any>();
 
 const { onMessage, sendMessage } = messages({

@@ -27,7 +27,7 @@ try {
     for (let i = 0; i < numberToCalculate; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         console.log(`Calculating Fibonacci(${i}) in a worker thread...`);
-        sendMessage("fibonacci", i).then((result) => {
+        void sendMessage("fibonacci", i).then((result) => {
             console.log(`Fibonacci(${i}) result: ${result}`);
         });
     }

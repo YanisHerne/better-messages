@@ -1,6 +1,6 @@
-import { makeMessages, makeCustom } from "better-messages";
+import { makeChromeMessages, makeCustom } from "better-messages";
 
-export const { onMessage, sendMessage } = makeMessages<{
+export const { onMessage, sendMessage } = makeChromeMessages<{
     inject: () => void;
     hello: (x: string) => string;
     divide: (x: number, y: number) => number;
@@ -9,20 +9,18 @@ export const { onMessage, sendMessage } = makeMessages<{
     length: (x: string) => number;
 }>();
 
-//export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustom<{
-//    greet: (name: string) => string
-//}>({
-//    listen: (listener) => {
-//        chrome.runtime.onMessage.addListener(listener);
-//    },
-//    unlisten: (listener) => {
-//        chrome.runtime.onMessage.removeListener(listener);
-//    },
-//    send: (data: any) => {
-//        chrome.runtime.sendMessage(data);
-//    },
-//    namespace: "custom"
-//});
+export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustom<{
+    greet: (name: string) => string;
+}>({
+    listen: (listener) => {
+        chrome.runtime.onMessage.addListener(listener);
+        return () => chrome.runtime.onMessage.removeListener(listener);
+    },
+    send: (data) => {
+        void chrome.runtime.sendMessage(data);
+    },
+    namespace: "custom",
+});
 
 export const customMessages = makeCustom<{
     greet: (name: string) => string;
@@ -32,6 +30,7 @@ export const { sendMessage: sendInjected, onMessage: listenInjected } = makeCust
     greet: (name: string) => string;
 }>({
     listen: (listener) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const callback = (event: CustomEvent<{ detail: any }>) => {
             listener(event.detail);
         };
@@ -45,10 +44,10 @@ export const { sendMessage: sendInjected, onMessage: listenInjected } = makeCust
                 callback as (event: Event) => void,
             );
     },
-    send: (data: any) => {
+    send: (data) => {
         document.body.dispatchEvent(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
             new CustomEvent<{ detail: any }>("better-messages-injected", { detail: data }),
         );
     },
-    namespace: "injected",
 });

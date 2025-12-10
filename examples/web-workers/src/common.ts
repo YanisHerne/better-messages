@@ -1,6 +1,6 @@
-import { makeCustom } from "better-messages";
+import { makeWorkerMessages } from "better-messages";
 
-export const messages = makeCustom<{
+export const { main: mainMessages, worker: workerMessages } = makeWorkerMessages<{
     greet: (name: string) => string;
     add: (x: number, y: number) => number;
     divide: (x: number, y: number) => number;

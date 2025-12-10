@@ -9,15 +9,15 @@ onMessage({
             target: { tabId: tabId },
             files: ["./content.js"],
         });
-        await sendMessage(tabId, "hello", "Hello from background to content");
+        await sendMessage({ tabId: tabId }, "hello", "Hello from background to content");
 
         let count = 0;
-        setInterval(async () => {
+        setInterval(() => {
             count++;
             if (!tabId) return;
             try {
-                await sendMessage(
-                    tabId,
+                void sendMessage(
+                    { tabId: tabId },
                     "hello",
                     `Hello for ${count} times from background to content`,
                 );
@@ -43,8 +43,8 @@ const { onMessage: onMessageCustom } = customMessages({
         chrome.runtime.onMessage.addListener(listener);
         return () => chrome.runtime.onMessage.removeListener(listener);
     },
-    send: (data: any) => {
-        chrome.runtime.sendMessage(data);
+    send: (data) => {
+        void chrome.runtime.sendMessage(data);
     },
     namespace: "custom",
 });

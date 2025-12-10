@@ -1,24 +1,14 @@
-import { messages } from "./common";
+import { workerMessages } from "./common";
 
-const { onMessage, sendMessage } = messages({
-    listen: (listener) => {
-        const callback = (event: MessageEvent) => {
-            listener(event.data);
-        };
-        self.addEventListener("message", callback);
-        return () => self.removeEventListener("message", callback);
-    },
-    send: (data) => {
-        self.postMessage(data);
-    },
-    namespace: "worker",
-});
+const { onMessage, sendMessage } = workerMessages;
 
 let count = 0;
-setInterval(async () => {
-    count++;
-    const response = await sendMessage("ping", `Pinging from web worker for ${count} times`);
-    console.log(response);
+setInterval(() => {
+    void (async () => {
+        count++;
+        const response = await sendMessage("ping", `Pinging from web worker for ${count} times`);
+        console.log(response);
+    })();
 }, 1000);
 
 onMessage({

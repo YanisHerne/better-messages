@@ -1,8 +1,6 @@
 # better-messages
 
-**Easy, Ergonomic, and Type-Safe Messaging for JavaScript Contexts**
-
-`better-messages` is a small, self-contained library that provides an ergonomic, type-safe way to manage communication between different local javascript contexts. Originally for browser extensions, it easily generalizes to other cross-context usecases, including Web Workers, Service Workers, Shared Workers, and more.
+`better-messages` is a small, self-contained library that provides an ergonomic, type-safe way to communicate between different local javascript contexts. Originally for browser extensions, it easily generalizes to other cross-context usecases, including Web Workers, Service Workers, Shared Workers, and more. The library includes an adapter for browser extensions and an adapter for Web Workers. Adapters for other usecases can be written trivially in less than a dozen lines.
 
 ## Why `better-messages`?
 

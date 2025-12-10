@@ -27,6 +27,16 @@
         "test": "vitest --run",
         "size": "pkg-size dist"
     },
+    "exports": {
+        ".": {
+            "types": {
+                "import": "./dist/index.d.ts", 
+                "require": "./dist/index.d.cts" 
+            },
+            "require": "./dist/index.cjs",
+            "import": "./dist/index.js"
+        }
+    },
     "packageManager": "pnpm@10.8.0",
     "devDependencies": {
         "@types/chrome": "^0.1.24",

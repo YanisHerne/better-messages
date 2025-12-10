@@ -9,15 +9,17 @@ onMessage<"background">({
             target: { tabId: tabId },
             files: ["./content.js"],
         });
-        await sendMessage(tabId, "hello", "Hello from background");
+        await sendMessage({ tabId: tabId }, "hello", "Hello from background");
 
         let count = 0;
-        setInterval(async () => {
-            count++;
-            if (!tabId) return;
-            try {
-                await sendMessage(tabId, "hello", `Hello for ${count} times`);
-            } catch {}
+        setInterval(() => {
+            void (async () => {
+                count++;
+                if (!tabId) return;
+                try {
+                    await sendMessage({ tabId: tabId }, "hello", `Hello for ${count} times`);
+                } catch {}
+            })();
         }, 1000);
     },
 
