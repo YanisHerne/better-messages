@@ -1,4 +1,4 @@
-/*
+/**
  * This type defines what types the passed messaging contract can be: Any
  * record where the values are all functions of any type. The keys are used
  * to keep track of what listeners should respond to which messages, the
@@ -11,9 +11,8 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Contract = Record<any, (...args: any[]) => any>;
 
-type StrictContract = {
-    [category: string]: Contract;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type StrictContract = Record<any, Contract>;
 
 type HasOnlyOneProperty<T> = keyof T extends infer K
     ? K extends PropertyKey
@@ -25,7 +24,7 @@ type HasOnlyOneProperty<T> = keyof T extends infer K
         : false
     : false;
 
-type UniqueKeys<T extends StrictContract> = keyof T[keyof T] extends never
+type StrictContractValidator<T extends StrictContract> = keyof T[keyof T] extends never
     ? []
     : HasOnlyOneProperty<T> extends true
       ? []
@@ -40,21 +39,18 @@ type Uniqueify<T extends StrictContract> = keyof T[keyof T] extends never
       ? T
       : never;
 
-type ExtractIndividualYProps<T extends StrictContract> = {
-    [X in keyof T]: {
-        [Y in keyof T[X]]: {
-            [K in Y]: T[X][Y];
-        };
-    }[keyof T[X]];
-}[keyof T];
+type ExtractIndividualYProps<S extends StrictContract> = S[keyof S];
+
 type UnionToIntersection<U> = (U extends unknown ? (arg: U) => 0 : never) extends (
     arg: infer I,
 ) => 0
     ? I
     : never;
+
 type FlattenIntersection<T> = {
     [K in keyof T]: T[K];
 };
+
 type Flatten<T extends StrictContract> =
     FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>> extends Contract
         ? FlattenIntersection<UnionToIntersection<ExtractIndividualYProps<T>>>
@@ -69,7 +65,7 @@ type Flatten<T extends StrictContract> =
  * * msg: the data itself
  * * response: true for the response, false for the sending
  */
-type InternalCustom<C extends Contract, K extends keyof C> = {
+type Internal<C extends Contract, K extends keyof C> = {
     tag: K;
     namespace: string;
     id: string;
@@ -88,19 +84,19 @@ type InternalCustom<C extends Contract, K extends keyof C> = {
  * The type of all possible messages that a listener may receive, which is the
  * internal input types for every possible method in the contract.
  */
-type AllInternalCustom<C extends Contract> = {
-    [K in keyof C]: InternalCustom<C, K>;
+type AllInternal<C extends Contract> = {
+    [K in keyof C]: Internal<C, K>;
 }[keyof C];
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-type CustomConfigNormal = {
+export type NormalAdapter = {
     listen: (listener: (data: any) => void) => () => void;
     send: (data: any) => void;
     namespace?: string;
 };
 
-type CustomConfigOption<O> = {
+export type OptionAdapter<O> = {
     listen: (listener: (data: any) => void) => () => void;
     send: (data: any, option?: O) => void;
     namespace?: string;
@@ -108,11 +104,13 @@ type CustomConfigOption<O> = {
 
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export type CustomConfig<O = undefined> = O extends undefined
-    ? CustomConfigNormal
-    : CustomConfigOption<O>;
+export type Adapter<O = undefined> = O extends undefined ? NormalAdapter : OptionAdapter<O>;
 
-export interface CustomMessagesNormal<C extends Contract> {
+/**
+ * This is the returned interface when using a Normal Contract and no custom
+ * options.
+ */
+export interface NormalMessages<C extends Contract> {
     onMessage<K extends keyof C>(
         this: void,
         tag: K,
@@ -134,7 +132,11 @@ export interface CustomMessagesNormal<C extends Contract> {
     ): Promise<ReturnType<C[K]>>;
 }
 
-export interface CustomMessagesOption<C extends Contract, O> {
+/**
+ * This is the returned interface when using a Normal Contract and custom
+ * options, which adds an overload to `sendMessage` for the option.
+ */
+export interface OptionMessages<C extends Contract, O> {
     onMessage<K extends keyof C>(
         this: void,
         tag: K,
@@ -162,11 +164,19 @@ export interface CustomMessagesOption<C extends Contract, O> {
     ): Promise<ReturnType<C[K]>>;
 }
 
-export type CustomMessages<C extends Contract, O = undefined> = O extends undefined
-    ? CustomMessagesNormal<C>
-    : CustomMessagesOption<C, O>;
+/**
+ * Generalizes over interfaces with and without the option overload for Normal
+ * Contracts.
+ */
+export type Messages<C extends Contract, O = undefined> = O extends undefined
+    ? NormalMessages<C>
+    : OptionMessages<C, O>;
 
-export interface CustomStrictMessagesNormal<S extends StrictContract> {
+/**
+ * This is the returned interface when using a Strict Contract and no custom
+ * options.
+ */
+export interface StrictNormalMessages<S extends StrictContract> {
     onMessage<G extends keyof S>(
         this: void,
         handlers: {
@@ -188,7 +198,13 @@ export interface CustomStrictMessagesNormal<S extends StrictContract> {
         [K in keyof S[G]]: (...message: Parameters<S[G][K]>) => Promise<ReturnType<S[G][K]>>;
     };
 }
-export interface CustomStrictMessagesOption<S extends StrictContract, O> {
+
+/**
+ * This is the returned interface when using a Strict Contract and custom
+ * options, which adds an overload to `sendMessage` and `createMessage` for the
+ * option.
+ */
+export interface StrictOptionMessages<S extends StrictContract, O> {
     onMessage<G extends keyof S>(
         this: void,
         handlers: {
@@ -223,55 +239,64 @@ export interface CustomStrictMessagesOption<S extends StrictContract, O> {
     };
 }
 
-export type CustomStrictMessages<S extends StrictContract, O = undefined> = O extends undefined
-    ? CustomStrictMessagesNormal<S>
-    : CustomStrictMessagesOption<S, O>;
+/**
+ * Generalizes over interfaces with and without the option overload for Strict
+ * Contracts.
+ */
+export type StrictMessages<S extends StrictContract, O = undefined> = O extends undefined
+    ? StrictNormalMessages<S>
+    : StrictOptionMessages<S, O>;
 
+/**
+ * Generic helper type that takes in a Contract or StrictContract and always
+ * returns a flattened object. Used for typing variables that are agnostic
+ * over either type of Contract.
+ */
 type NormalOrStrict<C extends Contract | StrictContract> = C extends Contract
     ? C
     : C extends StrictContract
       ? C[keyof C]
       : never;
 
-type CustomHandler<
-    C extends Contract | StrictContract,
-    K extends keyof C,
-    S extends NormalOrStrict<C> = NormalOrStrict<C>,
-> = (...args: Parameters<S[K]>) => ReturnType<S[K]> | Promise<ReturnType<S[K]>>;
+/**
+ * Defines the type of a user-defined handler for a given message in a Contract
+ */
+type Handler<C extends Contract, K extends keyof C> = (
+    ...args: Parameters<C[K]>
+) => ReturnType<C[K]> | Promise<ReturnType<C[K]>>;
 
-const makeCustomInternal = <C extends Contract | StrictContract, O>({
+const makeMessagesInternal = <C extends Contract | StrictContract, O>({
     listen,
     send,
     namespace: maybeNamespace,
-}: CustomConfig<O>): C extends Contract
-    ? CustomMessages<C, O>
+}: Adapter<O>): C extends Contract
+    ? Messages<C, O>
     : C extends StrictContract
-      ? CustomStrictMessages<C, O>
+      ? StrictMessages<C, O>
       : never => {
+    type A = NormalOrStrict<C>;
     const namespace = maybeNamespace ?? "default";
     const onMessage = <K extends keyof C>(
         ...args: C extends Contract
-            ?
-                  | [handlers: { [K in keyof C]?: CustomHandler<C, K> }]
-                  | [tag: K, handler: CustomHandler<C, K>]
+            ? [handlers: { [K in keyof C]?: Handler<C, K> }] | [tag: K, handler: Handler<C, K>]
             : C extends StrictContract
               ? [
                     handlers: {
-                        [K in keyof C[keyof C]]: CustomHandler<C[keyof C], K>;
+                        [K in keyof C[keyof C]]: Handler<C[keyof C], K>;
                     },
                 ]
               : never
     ): void => {
-        listen((message: AllInternalCustom<NormalOrStrict<C>>) => {
+        listen((message: AllInternal<A>) => {
             if (message.response || message.namespace !== namespace) return;
-            let handler: CustomHandler<C, K> | undefined;
+            let handler: Handler<A, K> | undefined;
             if (typeof args[0] === "string" && args[0] === message.tag) {
                 handler = args[1];
             } else {
                 const handlers: {
-                    [K in keyof C]?: CustomHandler<C, K>;
+                    [K in keyof C]?: Handler<A, K>;
                 } = args[0] as {
-                    [K in keyof C]?: CustomHandler<C, K>;
+                    [K in keyof C]?: Handler<A, K>;
                 };
                 handler = handlers[message.tag];
             }
@@ -299,11 +324,11 @@ const makeCustomInternal = <C extends Contract | StrictContract, O>({
 
     const sendMessage = async <K extends keyof C>(
         ...args:
-            | [option: O, tag: K, ...message: Parameters<NormalOrStrict<C>[K]>]
-            | [tag: K, ...message: Parameters<NormalOrStrict<C>[K]>]
-    ): Promise<ReturnType<NormalOrStrict<C>[K]>> => {
+            | [option: O, tag: K, ...message: Parameters<A[K]>]
+            | [tag: K, ...message: Parameters<A[K]>]
+    ): Promise<ReturnType<A[K]>> => {
         let option: O | undefined = undefined;
-        let internal: InternalCustom<NormalOrStrict<C>, K>;
+        let internal: Internal<A, K>;
         let tag: K;
         if (typeof args[0] === "object") {
             option = args[0];
@@ -312,7 +337,7 @@ const makeCustomInternal = <C extends Contract | StrictContract, O>({
                 tag: tag,
                 namespace: namespace,
                 id: Date.now() + Math.floor(Math.random() * 1000) + "",
-                msg: args.slice(2) as Parameters<NormalOrStrict<C>[K]>,
+                msg: args.slice(2) as Parameters<A[K]>,
                 response: false,
             };
         } else {
@@ -321,12 +346,12 @@ const makeCustomInternal = <C extends Contract | StrictContract, O>({
                 tag: tag,
                 namespace: namespace,
                 id: Date.now() + Math.floor(Math.random() * 1000) + "",
-                msg: args.slice(1) as Parameters<NormalOrStrict<C>[K]>,
+                msg: args.slice(1) as Parameters<A[K]>,
                 response: false,
             };
         }
         return new Promise((resolve) => {
-            const listener = (data: AllInternalCustom<NormalOrStrict<C>>) => {
+            const listener = (data: AllInternal<A>) => {
                 if (data.tag === tag && data.id === internal.id && data.response) {
                     unlisten();
                     resolve(data.msg);
@@ -342,7 +367,7 @@ const makeCustomInternal = <C extends Contract | StrictContract, O>({
     ) => {
         return new Proxy({} as S, {
             get: <K extends keyof S>(_target: S, tag: K, _receiver: unknown) => {
-                return (...message: Parameters<NormalOrStrict<C>[K]>) => {
+                return (...message: Parameters<A[K]>) => {
                     if (option) return sendMessage(option, tag, ...message);
                     else return sendMessage(tag, ...message);
                 };
@@ -351,69 +376,81 @@ const makeCustomInternal = <C extends Contract | StrictContract, O>({
     };
 
     return { onMessage, sendMessage, createMessage } as C extends Contract
-        ? CustomMessages<C, O>
+        ? Messages<C, O>
         : C extends StrictContract
-          ? CustomStrictMessages<C, O>
+          ? StrictMessages<C, O>
           : never;
 };
 
-export function makeCustom<C extends Contract, O = undefined>(
-    config: CustomConfig<O>,
-): CustomMessages<C, O>;
-export function makeCustom<C extends Contract, O = undefined>(): (
-    config: CustomConfig<O>,
-) => CustomMessages<C, O>;
-export function makeCustom<S extends StrictContract, O = undefined>(
-    config: CustomConfig<O>,
-    ..._validStrictContract: ["override"] | UniqueKeys<S>
-): CustomStrictMessages<S, O>;
-export function makeCustom<S extends StrictContract, O = undefined>(
-    ..._validStrictContract: ["override"] | UniqueKeys<S>
-): (config: CustomConfig<O>) => CustomStrictMessages<S, O>;
-export function makeCustom<C extends Contract | StrictContract, O = undefined>(
+/**
+ *
+ */
+export function makeMessages<C extends Contract | StrictContract, O = undefined>(
+    adapter: Adapter<O>,
+): C extends Contract
+    ? Messages<C, O>
+    : C extends StrictContract
+      ? Uniqueify<C> extends never
+          ? never
+          : StrictMessages<C, O>
+      : never;
+export function makeMessages<C extends Contract, O = undefined>(): (
+    adapter: Adapter<O>,
+) => Messages<C, O>;
+export function makeMessages<C extends StrictContract, O = undefined>(
+    ..._validStrictContract: StrictContractValidator<C>
+): Uniqueify<C> extends never ? never : (adapter: Adapter<O>) => StrictMessages<C, O>;
+export function makeMessages<C extends Contract | StrictContract, O = undefined>(
     ...args: C extends Contract
-        ? [config: CustomConfig<O>] | []
+        ? [adapter: Adapter<O>] | []
         : C extends StrictContract
           ?
-                | [config: CustomConfig<O>, ..._validStrictContract: ["override"] | UniqueKeys<C>]
-                | [..._validStrictContract: ["override"] | UniqueKeys<C>]
+                | [adapter: Adapter<O>, ..._validStrictContract: StrictContractValidator<C>]
+                | [..._validStrictContract: StrictContractValidator<C>]
           : never
 ):
     | (C extends Contract
-          ? CustomMessages<C, O>
+          ? Messages<C, O>
           : C extends StrictContract
-            ? CustomStrictMessages<C, O>
+            ? StrictMessages<C, O>
             : never)
     | ((
-          config: CustomConfig<O>,
+          adapter: Adapter<O>,
       ) => C extends Contract
-          ? CustomMessages<C, O>
+          ? Messages<C, O>
           : C extends StrictContract
-            ? CustomStrictMessages<C, O>
+            ? StrictMessages<C, O>
             : never) {
     if (args.length === 1) {
-        return makeCustomInternal<C, O>(args[0] as CustomConfig<O>);
+        return makeMessagesInternal<C, O>(args[0]);
     } else {
         // This is the function returned by the second overload
-        return (config: CustomConfig<O>) => {
-            return makeCustomInternal<C, O>(config);
+        return (adapter: Adapter<O>) => {
+            return makeMessagesInternal<C, O>(adapter);
         };
     }
 }
 
-type ChromeOptions = {
+export type ChromeOptions = {
     tabId: number;
     frameId?: number;
 };
 
-export function makeChromeMessages<C extends Contract>(): CustomMessages<C, ChromeOptions>;
-export function makeChromeMessages<C extends StrictContract>(
-    ...args: UniqueKeys<C>
-): CustomStrictMessages<C, ChromeOptions>
+/**
+ * The included adapter for Browser Extensions.
+ */
+//export function makeChromeMessages<C extends Contract>(): Messages<C, ChromeOptions>;
+//export function makeChromeMessages<C extends StrictContract>(
+//    ...args: StrictContractValidator<C>
+//): Uniqueify<C> extends never ? never : StrictMessages<C, ChromeOptions>;
 export function makeChromeMessages<C extends Contract | StrictContract>(
-    ..._args: C extends Contract ? [] : C extends StrictContract ? UniqueKeys<C> : never
+    ..._args: C extends Contract
+        ? []
+        : C extends StrictContract
+          ? StrictContractValidator<C>
+          : never
 ) {
-    return makeCustomInternal<C, ChromeOptions>({
+    return makeMessages<C, ChromeOptions>({
         listen: (listener) => {
             chrome.runtime.onMessage.addListener(listener);
             return () => chrome.runtime.onMessage.removeListener(listener);
@@ -430,22 +467,25 @@ export function makeChromeMessages<C extends Contract | StrictContract>(
     });
 }
 
-export function makeWorkerMessages<C extends Contract>(): {
-    main: (worker: Worker) => CustomMessages<C, ChromeOptions>;
-    worker: CustomMessages<C, ChromeOptions>;
-};
-export function makeWorkerMessages<C extends StrictContract>(
-    ...args: UniqueKeys<C>
-): {
-    main: (worker: Worker) => CustomStrictMessages<C, ChromeOptions>;
-    worker: CustomStrictMessages<C, ChromeOptions>;
-};
+/**
+ * The included adapter for Web Workers.
+ */
+//export function makeWorkerMessages<C extends Contract>(): {
+//    main: (worker: Worker) => Messages<C>;
+//    worker: Messages<C>;
+//};
+//export function makeWorkerMessages<C extends StrictContract>(
+//    ...args: StrictContractValidator<C>
+//): {
+//    main: (worker: Worker) => StrictMessages<C>;
+//    worker: StrictMessages<C>;
+//};
 export function makeWorkerMessages<C extends Contract | StrictContract>(
-    ..._args: C extends StrictContract ? UniqueKeys<C> : []
+    ..._args: C extends StrictContract ? StrictContractValidator<C> : []
 ) {
     return {
         main: (worker: Worker) =>
-            makeCustomInternal<C, ChromeOptions>({
+            makeMessages<C>({
                 listen: (listener) => {
                     const callback = (event: MessageEvent) => {
                         listener(event.data);
@@ -457,7 +497,7 @@ export function makeWorkerMessages<C extends Contract | StrictContract>(
                     worker.postMessage(data);
                 },
             }),
-        worker: makeCustomInternal<C, ChromeOptions>({
+        worker: makeMessages<C>({
             listen: (listener) => {
                 const callback = (event: MessageEvent) => {
                     listener(event.data);

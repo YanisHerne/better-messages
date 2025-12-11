@@ -1,20 +1,15 @@
 import { expect, test, expectTypeOf } from "vitest";
-import {
-    makeCustom,
-    type CustomConfig,
-    type CustomMessages,
-    type CustomStrictMessages,
-} from "../src/index";
+import { makeMessages, type Adapter, type Messages, type StrictMessages } from "../src/index";
 import { EventEmitter } from "node:events";
 
-test("Custom - Flat Contract - Immediate Config ", async () => {
-    expectTypeOf(makeCustom).parameter(0).toExtend<never>();
+test("Custom - Flat Contract - Immediate Adapter ", async () => {
+    expectTypeOf(makeMessages).parameter(0).toExtend<never>();
 
     type MyContract = {
         greet: (name: string) => string;
     };
     const events = new EventEmitter();
-    const { onMessage, sendMessage } = makeCustom<MyContract>({
+    const { onMessage, sendMessage } = makeMessages<MyContract>({
         listen: (listener) => {
             events.on("message", listener);
             return () => events.off("message", listener);
@@ -24,16 +19,16 @@ test("Custom - Flat Contract - Immediate Config ", async () => {
         },
         namespace: "default",
     });
-    expectTypeOf({ onMessage, sendMessage }).toExtend<CustomMessages<MyContract>>();
+    expectTypeOf({ onMessage, sendMessage }).toExtend<Messages<MyContract>>();
 
     onMessage("greet", (name) => `Hello, ${name}!`);
     const greeting = await sendMessage("greet", "Ford Prefect");
     expect(greeting).toBe("Hello, Ford Prefect!");
 });
 
-test("Custom - Strict Contract - Immediate Config", async () => {
+test("Custom - Strict Contract - Immediate Adapter", async () => {
     const events = new EventEmitter();
-    expectTypeOf(makeCustom).parameter(0).toExtend<never>();
+    expectTypeOf(makeMessages).parameter(0).toExtend<never>();
 
     type MyContract = {
         foo: {
@@ -43,7 +38,7 @@ test("Custom - Strict Contract - Immediate Config", async () => {
             add: (x: number, y: number) => number;
         };
     };
-    const { onMessage, sendMessage, createMessage } = makeCustom<MyContract>({
+    const { onMessage, sendMessage, createMessage } = makeMessages<MyContract>({
         listen: (listener) => {
             events.on("message", listener);
             return () => events.off("message", listener);
@@ -53,9 +48,7 @@ test("Custom - Strict Contract - Immediate Config", async () => {
         },
         namespace: "default",
     });
-    expectTypeOf({ onMessage, sendMessage, createMessage }).toExtend<
-        CustomStrictMessages<MyContract>
-    >();
+    expectTypeOf({ onMessage, sendMessage, createMessage }).toExtend<StrictMessages<MyContract>>();
 
     onMessage<"foo">({
         greet: (name) => `Hello, ${name}!`,
@@ -69,13 +62,13 @@ test("Custom - Strict Contract - Immediate Config", async () => {
     expect(sum).toBe(12);
 });
 
-test("Custom - Flat Contract - Deferred Config ", async () => {
+test("Custom - Flat Contract - Deferred Adapter ", async () => {
     type MyContract = {
         greet: (name: string) => string;
     };
-    const messages = makeCustom<MyContract>();
+    const messages = makeMessages<MyContract>();
     expectTypeOf(messages).toBeFunction();
-    expectTypeOf(messages).parameter(0).toExtend<CustomConfig>();
+    expectTypeOf(messages).parameter(0).toExtend<Adapter>();
 
     const events = new EventEmitter();
     const { onMessage, sendMessage } = messages({
@@ -88,14 +81,14 @@ test("Custom - Flat Contract - Deferred Config ", async () => {
         },
         namespace: "default",
     });
-    expectTypeOf({ onMessage, sendMessage }).toExtend<CustomMessages<MyContract>>();
+    expectTypeOf({ onMessage, sendMessage }).toExtend<Messages<MyContract>>();
 
     onMessage("greet", (name) => `Hello, ${name}!`);
     const greeting = await sendMessage("greet", "Ford Prefect");
     expect(greeting).toBe("Hello, Ford Prefect!");
 });
 
-test("Custom - Strict Contract - Deferred Config", async () => {
+test("Custom - Strict Contract - Deferred Adapter", async () => {
     type MyContract = {
         foo: {
             greet: (name: string) => string;
@@ -104,7 +97,7 @@ test("Custom - Strict Contract - Deferred Config", async () => {
             add: (x: number, y: number) => number;
         };
     };
-    const messages = makeCustom<MyContract>();
+    const messages = makeMessages<MyContract>();
 
     const events = new EventEmitter();
     const { onMessage, sendMessage, createMessage } = messages({
@@ -117,9 +110,7 @@ test("Custom - Strict Contract - Deferred Config", async () => {
         },
         namespace: "default",
     });
-    expectTypeOf({ onMessage, sendMessage, createMessage }).toExtend<
-        CustomStrictMessages<MyContract>
-    >();
+    expectTypeOf({ onMessage, sendMessage, createMessage }).toExtend<StrictMessages<MyContract>>();
 
     onMessage<"foo">({
         greet: (name) => `Hello, ${name}!`,
@@ -149,9 +140,8 @@ test("Custom - Strict Contract - Invalid Contract", () => {
             greet: (name: string) => string;
         };
     };
-    // @ts-expect-error Repeated "greet" sub-key correctly results in typescript error
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const messages = makeCustom<MyContract>({
+    const messages = makeMessages<MyContract>({
         listen: (listener) => {
             events.on("message", listener);
             return () => events.off("message", listener);

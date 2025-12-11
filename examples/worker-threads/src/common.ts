@@ -1,6 +1,6 @@
-import { makeCustom } from "better-messages";
+import { makeMessages } from "better-messages";
 
-export const messages = makeCustom<{
+export const messages = makeMessages<{
     fibonacci: (n: number) => number;
     status: (message: string) => void;
     exit: () => void;

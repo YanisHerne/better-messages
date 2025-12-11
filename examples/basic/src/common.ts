@@ -1,4 +1,4 @@
-import { makeChromeMessages, makeCustom } from "better-messages";
+import { makeChromeMessages, makeMessages } from "better-messages";
 
 export const { onMessage, sendMessage } = makeChromeMessages<{
     inject: () => void;
@@ -9,7 +9,7 @@ export const { onMessage, sendMessage } = makeChromeMessages<{
     length: (x: string) => number;
 }>();
 
-export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustom<{
+export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeMessages<{
     greet: (name: string) => string;
 }>({
     listen: (listener) => {
@@ -22,11 +22,11 @@ export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = ma
     namespace: "custom",
 });
 
-export const customMessages = makeCustom<{
+export const customMessages = makeMessages<{
     greet: (name: string) => string;
 }>();
 
-export const { sendMessage: sendInjected, onMessage: listenInjected } = makeCustom<{
+export const { sendMessage: sendInjected, onMessage: listenInjected } = makeMessages<{
     greet: (name: string) => string;
 }>({
     listen: (listener) => {

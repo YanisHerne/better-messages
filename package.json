@@ -4,6 +4,7 @@
     "description": "Better typescript ergonomics and organization for the browser extension messaging APIs.",
     "main": "dist/index.js",
     "type": "module",
+    "sideEffects": false,
     "keywords": [
         "extension",
         "web-extension",
@@ -25,13 +26,14 @@
         "format:w": "prettier -w src examples tests",
         "format:c": "prettier -c src examples tests",
         "test": "vitest --run",
-        "size": "pkg-size dist"
+        "size": "terser dist/index.js -o dist/minified.js -m && pkg-size dist",
+        "docgen": "typedoc src/index.ts"
     },
     "exports": {
         ".": {
             "types": {
-                "import": "./dist/index.d.ts", 
-                "require": "./dist/index.d.cts" 
+                "import": "./dist/index.d.ts",
+                "require": "./dist/index.d.cts"
             },
             "require": "./dist/index.cjs",
             "import": "./dist/index.js"
@@ -43,13 +45,17 @@
         "@types/node": "^24.10.1",
         "@typescript-eslint/eslint-plugin": "^8.46.3",
         "@typescript-eslint/parser": "^8.46.3",
+        "@vitest/coverage-v8": "4.0.14",
         "eslint": "^9.39.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-solid": "^0.14.5",
         "pkg-size": "^2.4.0",
         "prettier": "^3.6.2",
+        "terser": "^5.44.1",
         "tsdown": "^0.15.9",
         "tsup": "^8.5.0",
+        "typedoc": "^0.28.15",
+        "typedoc-plugin-missing-exports": "^4.1.2",
         "vite": "^7.1.12",
         "vitest": "^4.0.14"
     }

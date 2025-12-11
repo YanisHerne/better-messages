@@ -1,4 +1,4 @@
-import { makeChromeMessages, makeCustom } from "better-messages";
+import { makeChromeMessages, makeMessages } from "better-messages";
 
 export const { onMessage, createMessage, sendMessage } = makeChromeMessages<{
     background: {
@@ -13,7 +13,7 @@ export const { onMessage, createMessage, sendMessage } = makeChromeMessages<{
     };
 }>();
 
-export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeCustom<{
+export const { onMessage: onMessageCustom, sendMessage: sendMessageCustom } = makeMessages<{
     background: {
         greet: (name: string) => string;
     };

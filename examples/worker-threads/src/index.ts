@@ -25,7 +25,7 @@ console.log("Main thread started.");
 const numberToCalculate = 10;
 try {
     for (let i = 0; i < numberToCalculate; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         console.log(`Calculating Fibonacci(${i}) in a worker thread...`);
         void sendMessage("fibonacci", i).then((result) => {
             console.log(`Fibonacci(${i}) result: ${result}`);
