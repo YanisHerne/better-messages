@@ -1,5 +1,8 @@
 # better-messages
 
+[![Build and Test](https://img.shields.io/github/actions/workflow/status/YanisHerne/better-messages/tests.yml?branch=main&logo=github&style=for-the-badge&label=Build%20and%20Test)](https://github.com/YanisHerne/better-messages/actions/workflows/tests.yml)
+[![NPM Version](https://img.shields.io/npm/v/better-messages.svg?style=for-the-badge)](https://www.npmjs.com/package/better-messages)
+
 `better-messages` is a small, self-contained library that provides an ergonomic, type-safe way to communicate between different local javascript contexts. Originally for browser extensions, it easily generalizes to other cross-context usecases, including Web Workers, Service Workers, Shared Workers, and more. `better-messages` includes adapters for [Browser Extensions](#browser-extensions) and for [Web Workers](#web-workers). Adapters for other usecases can be written trivially in less than a dozen lines.
 
 Traditional cross-context messaging with raw APIs is boilerplate-heavy and prone to runtime errors. `better-messages` solves this with:

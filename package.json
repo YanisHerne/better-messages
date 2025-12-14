@@ -1,7 +1,16 @@
 {
     "name": "better-messages",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Better typescript ergonomics and organization for the browser extension messaging APIs.",
+    "homepage": "https://github.com/YanisHerne/better-messages",
+    "bugs": {
+        "url": "https://github.com/YanisHerne/better-messages/issues",
+        "email": "packages@yanisherne.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/YanisHerne/better-messages"
+    },
     "main": "dist/index.js",
     "type": "module",
     "sideEffects": false,
@@ -39,6 +48,12 @@
             "import": "./dist/index.js"
         }
     },
+    "files": [
+        "dist",
+        "package.json",
+        "README.md",
+        "LICENSE"
+    ],
     "packageManager": "pnpm@10.8.0",
     "devDependencies": {
         "@types/chrome": "^0.1.24",
