@@ -1,6 +1,6 @@
 {
     "name": "better-messages",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Better typescript ergonomics and organization for the browser extension messaging APIs.",
     "homepage": "https://github.com/YanisHerne/better-messages",
     "bugs": {

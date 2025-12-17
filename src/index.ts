@@ -115,7 +115,7 @@ type AllInternal<C extends Contract> = {
  */
 export type NormalAdapter = {
     listen: (listener: (data: any) => void) => () => void;
-    send: (data: any) => void;
+    send: (data: any) => void | Promise<void>;
     namespace?: string;
 };
 
@@ -130,7 +130,7 @@ export type NormalAdapter = {
  */
 export type OptionAdapter<O> = {
     listen: (listener: (data: any) => void) => () => void;
-    send: (data: any, option?: O) => void;
+    send: (data: any, option?: O) => void | Promise<void>;
     namespace?: string;
 };
 
@@ -346,7 +346,8 @@ const makeMessagesInternal = <C extends Contract | StrictContract, O>({
             const result = handler(...message.msg);
             if (result instanceof Promise) {
                 void result.then((data) => {
-                    send({
+                    // TODO: make sure this safe
+                    void send({
                         tag: message.tag,
                         msg: data,
                         id: message.id,
@@ -354,7 +355,8 @@ const makeMessagesInternal = <C extends Contract | StrictContract, O>({
                     });
                 });
             } else {
-                send({
+                // TODO: make sure this is safe
+                void send({
                     tag: message.tag,
                     msg: result,
                     id: message.id,
@@ -392,7 +394,7 @@ const makeMessagesInternal = <C extends Contract | StrictContract, O>({
                 response: false,
             };
         }
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const listener = (data: AllInternal<A>) => {
                 if (data.tag === tag && data.id === internal.id && data.response) {
                     unlisten();
@@ -400,7 +402,11 @@ const makeMessagesInternal = <C extends Contract | StrictContract, O>({
                 }
             };
             const unlisten = listen(listener);
-            send(internal, option);
+            const maybePromise = send(internal, option);
+            // Prevent "uncaught error in Promise"
+            if (maybePromise instanceof Promise)
+                // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                maybePromise.catch((e) => reject(e));
         });
     };
 
@@ -531,13 +537,13 @@ export function makeChromeMessages<C extends Contract | StrictContract>(
             chrome.runtime.onMessage.addListener(listener);
             return () => chrome.runtime.onMessage.removeListener(listener);
         },
-        send: (data, option) => {
+        send: async (data, option) => {
             if (!option) {
-                void chrome.runtime.sendMessage(data);
+                await chrome.runtime.sendMessage(data);
             } else if (option.tabId && !option.frameId) {
-                void chrome.tabs.sendMessage(option.tabId, data);
+                await chrome.tabs.sendMessage(option.tabId, data);
             } else {
-                void chrome.tabs.sendMessage(option.tabId, data, { frameId: option.frameId });
+                await chrome.tabs.sendMessage(option.tabId, data, { frameId: option.frameId });
             }
         },
     });
